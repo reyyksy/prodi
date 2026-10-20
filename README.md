@@ -100,3 +100,51 @@ Pada masing-masing komputer bilik suara siswa di lab komputer, buka browser dan 
 Tersedia dokumentasi dan buku panduan lengkap yang tersimpan dalam satu file mandiri (HTML, CSS, dan JS internal) yang dapat dibuka secara luring (offline) maupun daring:
 - URL Web: `http://<IP-SERVER>:3000/tutorial/index.html`
 - Path Berkas: `tutorial/index.html`
+
+---
+
+## 🔗 Link Proyek & Demo
+
+* **Live Demo (GitHub Pages):** [https://reyyksy.github.io/prodi/](https://reyyksy.github.io/prodi/)
+* **Repository GitHub:** [https://github.com/reyyksy/prodi](https://github.com/reyyksy/prodi)
+
+---
+
+## 🛠️ Panduan Solusi Error Setup (`better-sqlite3` & `dotenv`)
+
+Jika kamu mengalami error saat `npm install` dengan pesan:
+- `npm error gyp ERR! find VS / Could not find any Visual Studio installation to use`
+- `npm error code 1 / npm error path node_modules\better-sqlite3`
+- `Error: Cannot find module 'dotenv'` saat menjalankan `node server.js` / `npm start`
+
+### Analisis Penyebab
+1. Modul `better-sqlite3` adalah modul native C++ yang membutuhkan kompilasi di Windows jika tidak tersedia *prebuilt binary* yang cocok untuk versi Node.js yang kamu gunakan (misal: Node.js v24.x).
+2. Karena proses kompilasi `better-sqlite3` gagal di tengah jalan, proses `npm install` terhenti secara prematur sehingga paket-paket selanjutnya (seperti `dotenv`) belum sempat terinstall.
+
+### Cara Mengatasi (Pilih Salah Satu Solusi):
+
+#### Solusi 1: Install C++ Build Tools di Windows (Sangat Direkomendasikan)
+1. Buka **PowerShell** atau **Command Prompt** sebagai **Administrator**.
+2. Jalankan perintah instalasi build tools:
+   ```powershell
+   npm install --global windows-build-tools
+   ```
+   *Atau* unduh dan install [Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) secara manual, lalu centang komponen **"Desktop development with C++"**.
+3. Hapus folder `node_modules` dan file `package-lock.json` yang corrupt:
+   ```powershell
+   Remove-Item -Recurse -Force node_modules
+   Remove-Item -Force package-lock.json
+   ```
+4. Jalankan kembali perintah instalasi:
+   ```powershell
+   npm install
+   ```
+
+#### Solusi 2: Gunakan Node.js Versi LTS (v20 atau v18)
+Versi Node.js terbaru (seperti v24.x) sering kali belum didukung oleh prebuilt binaries dari `better-sqlite3`.
+1. Download dan pasang **Node.js LTS (v20.x atau v18.x)** dari [nodejs.org](https://nodejs.org/).
+2. Hapus sisa instalasi yang gagal dan lakukan install ulang:
+   ```powershell
+   Remove-Item -Recurse -Force node_modules
+   npm install
+   ```

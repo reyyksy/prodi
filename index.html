@@ -225,6 +225,7 @@
       <a href="#panitia-flow">5. Alur Penggunaan Panitia</a>
       <a href="#status-info">6. Arti Indikator Status Server</a>
       <a href="#troubleshoot">7. Troubleshooting & Mati Lampu</a>
+      <a href="#fix-sqlite-error">8. Solusi Error better-sqlite3 & dotenv</a>
     </div>
 
     <!-- 1. TOOLS & PREREQUISITES -->
@@ -392,6 +393,41 @@ Catatan: Komputer pemilih (PC 1 - 5) cukup membuka:
 
       <h3>Snapshot Statistik 15 Menit di Halaman Publik:</h3>
       <p>Halaman <code>/statistik.html</code> menggunakan snapshot interval 15 menit agar reload/refresh browser yang tidak sengaja tidak mengubah perolehan suara secara sembarangan. Data teragregasi secara otomatis sesuai jadwal sistem.</p>
+    </section>
+
+    <!-- 8. SOLUSI ERROR BETTER-SQLITE3 & DOTENV -->
+    <section class="section-card" id="fix-sqlite-error">
+      <h2>8. Solusi Solutif Error Installation (better-sqlite3 & dotenv)</h2>
+      <div class="alert-box danger">
+        <strong>Gejala Error:</strong><br>
+        <code>npm error gyp ERR! find VS - Could not find any Visual Studio installation to use</code><br>
+        <code>Error: Cannot find module 'dotenv'</code>
+      </div>
+
+      <p>Error ini terjadi karena modul native C++ <strong>better-sqlite3</strong> gagal dikompilasi pada Windows (misal saat menggunakan Node.js v24.x) karena belum ada Visual Studio C++ Build Tools. Kegagalan ini menghentikan proses <code>npm install</code> sehingga modul <strong>dotenv</strong> belum terunduh.</p>
+
+      <h3>Langkah Perbaikan Cepat (Pilih Salah Satu):</h3>
+
+      <div class="alert-box warning">
+        <strong>Cara 1: Install C++ Build Tools (Rekomendasi)</strong>
+        <ol style="margin-top: 0.5rem; padding-left: 1.25rem;">
+          <li>Buka <strong>PowerShell (Run as Administrator)</strong>.</li>
+          <li>Jalankan: <code>npm install --global windows-build-tools</code> (atau install Visual Studio dengan beban kerja "Desktop development with C++").</li>
+          <li>Hapus folder <code>node_modules</code> dan file <code>package-lock.json</code>:
+            <pre>Remove-Item -Recurse -Force node_modules
+Remove-Item -Force package-lock.json</pre>
+          </li>
+          <li>Jalankan kembali: <code>npm install</code></li>
+        </ol>
+      </div>
+
+      <div class="alert-box warning">
+        <strong>Cara 2: Menggunakan Node.js Versi LTS (v20 atau v18)</strong>
+        <ol style="margin-top: 0.5rem; padding-left: 1.25rem;">
+          <li>Unduh dan pasang versi <strong>Node.js LTS (v20 / v18)</strong> dari website resmi nodejs.org.</li>
+          <li>Hapus <code>node_modules</code> dan jalankan <code>npm install</code> kembali. Paket prebuilt binary akan langsung terpasang tanpa butuh kompilasi manual.</li>
+        </ol>
+      </div>
     </section>
 
   </div>
