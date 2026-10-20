@@ -9,7 +9,14 @@
 *.user
 *.userosscache
 *.sln.docstates
-*.env
+node_modules/
+.env
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+backups/
+exports/
+.agents/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
