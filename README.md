@@ -52,4 +52,14 @@ Database aktif berada di `data/election.sqlite`, backup di `backups/`, dan lapor
 
 Jalankan `npm run check` untuk memeriksa sintaks. Dependency database memakai `sql.js`, bukan `better-sqlite3`, sehingga tidak membutuhkan compiler. Jika instalasi gagal, gunakan Node.js LTS 20/22 dan jalankan `npm install` tanpa `--force` atau `--legacy-peer-deps`. Jika port bentrok, ubah `PORT`; jika LAN gagal, periksa firewall dan jaringan.
 
+Jika `npm run init-db` atau `npm start` menampilkan `Cannot find module './auth'` dari `src/db.js`, file sumber `src/auth.js` kemungkinan terhapus dari working tree. Periksa dengan `git status --short`; jika muncul `D src/auth.js`, pulihkan file itu dari Git:
+
+```powershell
+git restore src/auth.js
+npm run init-db
+npm start
+```
+
+Di Linux/macOS, perintah Git yang sama berlaku. `npm install` tidak memperbaiki error ini karena `./auth` adalah file proyek, bukan paket npm. Jika ada file proyek lain berstatus `D`, pulihkan hanya file yang memang terhapus dan ingin dikembalikan.
+
 Gunakan aplikasi pada jaringan sekolah tepercaya, batasi akses admin, backup sebelum reset/restore, dan jangan mengekspos port langsung ke internet.
