@@ -1,8 +1,6 @@
 // Logika Frontend Halaman Pemilih (Voter Client)
 (function() {
-  const API_BASE = (typeof SERVER_CONFIG !== 'undefined' && SERVER_CONFIG.ip)
-    ? `http://${SERVER_CONFIG.ip}:${SERVER_CONFIG.port}/api`
-    : '/api';
+  const API_BASE = '/api';
 
   // State
   let candidates = [];

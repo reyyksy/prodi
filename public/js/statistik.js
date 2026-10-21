@@ -1,13 +1,9 @@
 // Logika Halaman Statistik Publik (Bab 9 fixx.md + Perlindungan Refresh Snapshot Sistem)
 (function() {
-  const API_BASE = (typeof SERVER_CONFIG !== 'undefined' && SERVER_CONFIG.ip)
-    ? `http://${SERVER_CONFIG.ip}:${SERVER_CONFIG.port}/api`
-    : '/api';
+  const API_BASE = '/api';
 
   const statsMainTitle = document.getElementById('statsMainTitle');
   const statsSubtitle = document.getElementById('statsSubtitle');
-  const timerContainer = document.getElementById('timerContainer');
-  const countdownTimer = document.getElementById('countdownTimer');
   const lastUpdatedLabel = document.getElementById('lastUpdatedLabel');
   const statsTotalVotes = document.getElementById('statsTotalVotes');
   const finalStatusAlert = document.getElementById('finalStatusAlert');
@@ -24,8 +20,6 @@
     { bg: '#ea580c', border: '#c2410c', name: 'Oranye' },  // Paslon 3
   ];
 
-  let nextUpdateTimestamp = null;
-  let timerInterval = null;
 
   async function loadStatistics() {
     try {
@@ -52,7 +46,6 @@
       // Masuk mode final
       statsMainTitle.textContent = 'HASIL FINAL PEMILIHAN RESMI';
       statsSubtitle.textContent = 'Pemilihan telah ditutup secara sah oleh administrator.';
-      timerContainer.style.display = 'none';
 
       finalStatusAlert.style.display = 'block';
       if (data.result_status === 'no_votes') {
@@ -71,13 +64,7 @@
     } else {
       statsMainTitle.textContent = 'HASIL SEMENTARA PEMILIHAN';
       statsSubtitle.textContent = 'Data perolehan suara terproteksi dan teragregasi secara otomatis dan anonim.';
-      timerContainer.style.display = 'flex';
       finalStatusAlert.style.display = 'none';
-
-      if (data.next_update) {
-        nextUpdateTimestamp = new Date(data.next_update).getTime();
-        startServerSyncedCountdown();
-      }
     }
 
     // 1. Render Diagram Perbandingan Batang Horizontal Terpadu (Stacked Bar)
@@ -177,29 +164,8 @@
     }).join('');
   }
 
-  // Countdown yang selalu selaras dengan waktu server (bukan reset saat browser di-refresh)
-  function startServerSyncedCountdown() {
-    if (timerInterval) clearInterval(timerInterval);
-
-    function updateTick() {
-      if (!nextUpdateTimestamp) return;
-      const now = Date.now();
-      const diffSec = Math.max(0, Math.floor((nextUpdateTimestamp - now) / 1000));
-
-      if (diffSec <= 0) {
-        countdownTimer.textContent = '00:00 (Sinkronisasi...)';
-        loadStatistics();
-        return;
-      }
-
-      const m = Math.floor(diffSec / 60);
-      const s = diffSec % 60;
-      countdownTimer.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-
-    updateTick();
-    timerInterval = setInterval(updateTick, 1000);
-  }
+  // Polling otomatis memastikan monitor berubah tanpa reload manual.
+  setInterval(loadStatistics, 5000);
 
   btnManualRefresh.addEventListener('click', async () => {
     btnManualRefresh.disabled = true;

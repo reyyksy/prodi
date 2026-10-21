@@ -1,8 +1,6 @@
 // Logika Frontend Admin Dashboard
 (function() {
-  const API_BASE = (typeof SERVER_CONFIG !== 'undefined' && SERVER_CONFIG.ip)
-    ? `http://${SERVER_CONFIG.ip}:${SERVER_CONFIG.port}/api`
-    : '/api';
+  const API_BASE = '/api';
 
   // Elements
   const loginOverlay = document.getElementById('loginOverlay');

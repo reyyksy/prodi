@@ -324,13 +324,13 @@ router.get('/audit-logs', (req, res) => {
 
 // BACKUP & RESTORE
 // POST /api/admin/backup
-router.post('/backup', async (req, res) => {
+router.post('/backup', (req, res) => {
   try {
     const filename = `manual_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.sqlite`;
     const targetPath = path.join(backupsDir, filename);
 
-    // SQLite Online Backup API
-    await db.backup(targetPath);
+    // Backup sinkronus (sql.js export ke file)
+    db.backup(targetPath);
 
     db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
       'MANUAL_BACKUP',

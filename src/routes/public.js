@@ -58,31 +58,11 @@ router.get('/statistics', (req, res) => {
     const nextUpdateRow = db.prepare("SELECT value FROM settings WHERE key = 'public_stats_next_update'").get();
     const cacheRow = db.prepare("SELECT value FROM settings WHERE key = 'public_stats_cache'").get();
 
-    let statsData;
-    let lastUpdated = lastUpdatedRow ? lastUpdatedRow.value : new Date().toISOString();
-    let nextUpdate = nextUpdateRow ? nextUpdateRow.value : new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-    const now = Date.now();
-    const nextUpdateTime = new Date(nextUpdate).getTime();
-
-    // Jika pemilihan CLOSED, selalu final real-time
-    if (currentStatus === 'closed') {
-      statsData = calculateCurrentStats();
-    } else if (cacheRow && cacheRow.value && now < nextUpdateTime) {
-      // Masih dalam jendela interval 15 menit sistem -> pertahankan snapshot
-      try {
-        statsData = JSON.parse(cacheRow.value);
-        statsData.election_status = currentStatus; // sinkronkan status
-      } catch (e) {
-        statsData = calculateCurrentStats();
-      }
-    } else {
-      // Waktunya siklus interval sistem memperbarui snapshot
-      const snapshot = snapshotPublicStats('system_interval');
-      statsData = snapshot.stats;
-      lastUpdated = snapshot.last_updated;
-      nextUpdate = snapshot.next_update;
-    }
+    // Monitor publik selalu membaca agregat terkini dari database backend.
+    // Tidak ada data suara yang dihitung atau disimpan di browser.
+    const statsData = calculateCurrentStats();
+    const lastUpdated = new Date().toISOString();
+    const nextUpdate = null;
 
     res.json({
       success: true,

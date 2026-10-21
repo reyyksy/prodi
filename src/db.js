@@ -1,10 +1,11 @@
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
 const { hashPassword } = require('./auth');
 const defaultCandidates = require('../config/paslon');
+const siteConfig = require('../config/site');
 
-// Pastikan direktori data, backups, exports ada di disk dengan path aman cross-platform
+// Direktori data persisten cross-platform
 const dataDir = path.resolve(__dirname, '..', 'data');
 const backupsDir = path.resolve(__dirname, '..', 'backups');
 const exportsDir = path.resolve(__dirname, '..', 'exports');
@@ -14,11 +15,109 @@ if (!fs.existsSync(backupsDir)) fs.mkdirSync(backupsDir, { recursive: true });
 if (!fs.existsSync(exportsDir)) fs.mkdirSync(exportsDir, { recursive: true });
 
 const dbPath = path.join(dataDir, 'election.sqlite');
-const db = new Database(dbPath);
 
-// Enable WAL mode & foreign keys for high performance and integrity
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+let SQL_ENGINE = null;
+let rawDb = null;
+let _inTransaction = false; // Flag: true saat di dalam db.transaction() callback
+
+// Wrapper helper agar API tetap kompatibel: prepare(sql).get(...), .all(...), .run(...)
+const db = {
+  exec(sql) {
+    if (!rawDb) throw new Error('Database belum diinisialisasi.');
+    rawDb.run(sql);
+    this.saveToDisk();
+  },
+
+  saveToDisk() {
+    try {
+      if (rawDb) {
+        const binary = rawDb.export();
+        const buffer = Buffer.from(binary);
+        fs.writeFileSync(dbPath, buffer);
+      }
+    } catch (err) {
+      console.error('[DB] Gagal menyimpan database ke disk:', err);
+    }
+  },
+
+  backup(targetFilePath) {
+    if (!rawDb) throw new Error('Database belum diinisialisasi.');
+    const binary = rawDb.export();
+    const buffer = Buffer.from(binary);
+    fs.writeFileSync(targetFilePath, buffer);
+  },
+
+  prepare(sql) {
+    return {
+      get(...params) {
+        if (!rawDb) throw new Error('Database belum diinisialisasi.');
+        const normalizedParams = (params.length === 1 && Array.isArray(params[0])) ? params[0] : params;
+        const stmt = rawDb.prepare(sql);
+        try {
+          if (normalizedParams.length > 0) stmt.bind(normalizedParams);
+          if (stmt.step()) {
+            return stmt.getAsObject();
+          }
+          return undefined;
+        } finally {
+          stmt.free();
+        }
+      },
+
+      all(...params) {
+        if (!rawDb) throw new Error('Database belum diinisialisasi.');
+        const normalizedParams = (params.length === 1 && Array.isArray(params[0])) ? params[0] : params;
+        const stmt = rawDb.prepare(sql);
+        const rows = [];
+        try {
+          if (normalizedParams.length > 0) stmt.bind(normalizedParams);
+          while (stmt.step()) {
+            rows.push(stmt.getAsObject());
+          }
+          return rows;
+        } finally {
+          stmt.free();
+        }
+      },
+
+      run(...params) {
+        if (!rawDb) throw new Error('Database belum diinisialisasi.');
+        const normalizedParams = (params.length === 1 && Array.isArray(params[0])) ? params[0] : params;
+        try {
+          rawDb.run(sql, normalizedParams);
+          // Hanya simpan ke disk jika TIDAK sedang di dalam transaction callback
+          // Supaya tidak memicu auto-commit yang merusak COMMIT utama
+          if (!_inTransaction) {
+            db.saveToDisk();
+          }
+          return {
+            changes: rawDb.getRowsModified()
+          };
+        } catch (e) {
+          throw e;
+        }
+      }
+    };
+  },
+
+  transaction(fn) {
+    return (...args) => {
+      _inTransaction = true;
+      rawDb.run('BEGIN TRANSACTION;');
+      try {
+        const result = fn(...args);
+        rawDb.run('COMMIT;');
+        _inTransaction = false;
+        db.saveToDisk(); // Simpan sekali saja setelah COMMIT berhasil
+        return result;
+      } catch (err) {
+        _inTransaction = false;
+        try { rawDb.run('ROLLBACK;'); } catch (e) {}
+        throw err;
+      }
+    };
+  }
+};
 
 function calculateCurrentStats() {
   const statusRow = db.prepare("SELECT value FROM settings WHERE key = 'election_status'").get();
@@ -103,8 +202,26 @@ function snapshotPublicStats(triggerType = 'scheduled') {
   };
 }
 
-function initSchema() {
-  db.exec(`
+async function initDatabase() {
+  if (rawDb) return;
+
+  SQL_ENGINE = await initSqlJs();
+
+  // Load existing file if present, else create new
+  if (fs.existsSync(dbPath)) {
+    try {
+      const fileBuffer = fs.readFileSync(dbPath);
+      rawDb = new SQL_ENGINE.Database(fileBuffer);
+    } catch (e) {
+      console.warn('[DB] Membaca file sqlite gagal, membuat database baru:', e.message);
+      rawDb = new SQL_ENGINE.Database();
+    }
+  } else {
+    rawDb = new SQL_ENGINE.Database();
+  }
+
+  // Schema creation
+  rawDb.run(`
     CREATE TABLE IF NOT EXISTS candidates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ballot_number INTEGER UNIQUE NOT NULL,
@@ -117,7 +234,6 @@ function initSchema() {
       is_active INTEGER DEFAULT 1
     );
 
-    -- DILARANG: Menyimpan nama pemilih, NIS, IP, pc_id, atau session_id
     CREATE TABLE IF NOT EXISTS votes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       candidate_id INTEGER NOT NULL,
@@ -154,12 +270,11 @@ function initSchema() {
       is_enabled INTEGER DEFAULT 1
     );
 
-    -- Sesi PC: Status sesi PC tanpa kandidat_id
     CREATE TABLE IF NOT EXISTS pc_sessions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       pc_id INTEGER NOT NULL,
       session_token TEXT UNIQUE,
-      session_status TEXT NOT NULL CHECK(session_status IN ('ready', 'in_progress', 'completed')),
+      session_status TEXT NOT NULL,
       started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       completed_at DATETIME,
       reset_by_admin_id INTEGER,
@@ -176,14 +291,14 @@ function initSchema() {
     );
   `);
 
-  // Inisialisasi default settings
+  // Settings inisialisasi
   const initSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
-  initSetting.run('election_status', 'draft'); // draft, open, paused, closed
-  initSetting.run('election_title', 'Pemilihan Ketua & Wakil Ketua Program Keahlian TJKT');
-  initSetting.run('school_name', 'SMKS YASBAM KOTA BOGOR');
-  initSetting.run('academic_year', '2026/2027');
+  initSetting.run('election_status', 'draft');
+  initSetting.run('election_title', siteConfig.electionTitle);
+  initSetting.run('school_name', siteConfig.schoolName);
+  initSetting.run('academic_year', siteConfig.academicYear);
 
-  // Inisialisasi default admin (admin / admin) tanpa perlu .env khusus
+  // Default admin (admin / admin)
   const adminUser = process.env.ADMIN_DEFAULT_USER || 'admin';
   const adminPass = process.env.ADMIN_DEFAULT_PASS || 'admin';
   const existingAdmin = db.prepare('SELECT id FROM admin_users WHERE username = ?').get(adminUser);
@@ -192,8 +307,8 @@ function initSchema() {
     db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run(adminUser, hashed);
   }
 
-  // Inisialisasi PC 1 - PC 5
-  const countPc = db.prepare('SELECT COUNT(*) as cnt FROM pc_devices').get().cnt;
+  // PC 1 - PC 5
+  const countPc = db.prepare('SELECT COUNT(*) as cnt FROM pc_devices').get()?.cnt || 0;
   if (countPc === 0) {
     const insertPc = db.prepare('INSERT INTO pc_devices (pc_number, display_name, configured_ip, is_enabled) VALUES (?, ?, ?, 1)');
     for (let i = 1; i <= 5; i++) {
@@ -201,7 +316,7 @@ function initSchema() {
     }
   }
 
-  // Pastikan setiap PC memiliki minimal 1 record pc_sessions aktif ('ready' atau sesuai state sebelumnya)
+  // Pastikan ada pc_sessions aktif
   const pcs = db.prepare('SELECT id FROM pc_devices').all();
   const checkSession = db.prepare('SELECT id FROM pc_sessions WHERE pc_id = ? ORDER BY id DESC LIMIT 1');
   const createSession = db.prepare('INSERT INTO pc_sessions (pc_id, session_status) VALUES (?, ?)');
@@ -212,8 +327,8 @@ function initSchema() {
     }
   }
 
-  // Inisialisasi kandidat dari paslon.js jika kosong
-  const countCand = db.prepare('SELECT COUNT(*) as cnt FROM candidates').get().cnt;
+  // Candidates
+  const countCand = db.prepare('SELECT COUNT(*) as cnt FROM candidates').get()?.cnt || 0;
   if (countCand === 0) {
     const insertCand = db.prepare(`
       INSERT INTO candidates (ballot_number, chair_name, vice_name, vision, mission, programs_json, photo_path, is_active)
@@ -232,20 +347,21 @@ function initSchema() {
     }
   }
 
-  // Inisialisasi snapshot statistik publik jika belum ada
+  // Snapshot cache
   const cacheRow = db.prepare("SELECT value FROM settings WHERE key = 'public_stats_cache'").get();
   if (!cacheRow) {
     snapshotPublicStats('init');
   }
-}
 
-initSchema();
+  db.saveToDisk();
+}
 
 module.exports = {
   db,
   dbPath,
   backupsDir,
   exportsDir,
+  initDatabase,
   calculateCurrentStats,
   snapshotPublicStats
 };

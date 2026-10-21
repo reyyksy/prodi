@@ -7,8 +7,8 @@
 module.exports = [
   {
     ballot_number: 1,
-    chair_name: "Ahmad Fauzan Syahputra",
-    vice_name: "Muhammad Rizky Pratama",
+    chair_name: "Putri Aulia. S",
+    vice_name: "Desqi",
     vision: "Mewujudkan Prodi TJKT SMK Yasbam yang unggul di bidang networking dan cloud computing, berdaya saing industri, berlandaskan akhlaqul karimah.",
     mission: "1. Menyelenggarakan pelatihan dan sertifikasi mikrotik/cisco bagi siswa TJKT.\n2. Mengoptimalkan sarana laboratorium jaringan komputer dengan manajemen modern.\n3. Menumbuhkan budaya kolaborasi, kedisiplinan kerja, dan inovasi teknologi.",
     programs: [
@@ -20,8 +20,8 @@ module.exports = [
   },
   {
     ballot_number: 2,
-    chair_name: "Dimas Aditya Pratama",
-    vice_name: "Siti Nurhaliza Zahra",
+    chair_name: "Fadlan Fauzan",
+    vice_name: "Anisa",
     vision: "Menciptakan komunitas TJKT yang berkarakter islami, adaptif terhadap perkembangan telekomunikasi dan IoT, serta mandiri dalam berkarya.",
     mission: "1. Meningkatkan keterlibatan siswa dalam proyek IoT dan implementasi jaringan nirkabel.\n2. Mendorong sikap birrul walidain dan etos kerja profesional dalam setiap kegiatan kejuruan.\n3. Mempererat sinergi antara alumni TJKT SMK Yasbam dengan adik kelas.",
     programs: [
@@ -33,8 +33,8 @@ module.exports = [
   },
   {
     ballot_number: 3,
-    chair_name: "Rafi Muhammad Al-Ghifari",
-    vice_name: "Fadhil Arya Wicaksana",
+    chair_name: "R. Muhammad Duyeh (BADUYY)",
+    vice_name: "Athar Stecu",
     vision: "Menjadikan keahlian TJKT SMK Yasbam sebagai pelopor inovasi sistem otomasi jaringan, keamanan siber, dan technopreneurship berstandar nasional.",
     mission: "1. Melatih kesiapan siswa menghadapi uji kompetensi keahlian dan lomba keterampilan siswa (LKS).\n2. Membangun unit produksi jasa instalasi jaringan dan perakitan komputer sekolah.\n3. Mengintegrasikan teknologi ramah lingkungan dalam infrastruktur IT laboratorium.",
     programs: [
