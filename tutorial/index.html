@@ -6,24 +6,24 @@
 <section><h2>Windows PowerShell</h2><pre>git clone https://github.com/reyyksy/prodi.git
 Set-Location prodi
 npm install
-Copy-Item .env.example .env
+Rename-Item .env.example .env
 notepad .env
 npm run init-db
 npm start</pre></section>
 <section><h2>Linux</h2><pre>git clone https://github.com/reyyksy/prodi.git
 cd prodi
 npm install
-cp .env.example .env
+mv .env.example .env
 nano .env
 npm run init-db
 npm start</pre></section>
 <section><h2>macOS</h2><pre>git clone https://github.com/reyyksy/prodi.git
 cd prodi
 npm install
-cp .env.example .env
+mv .env.example .env
 nano .env
 npm run init-db
 npm start</pre></section>
-<section><h2>Konfigurasi dan akses</h2><p>Isi <code>.env</code> dengan <code>PORT</code>, rahasia sesi acak minimal 32 karakter, username, dan password admin kuat. Edit <code>config/site.js</code> untuk sekolah/logo; edit <code>config/paslon.js</code> untuk calon/foto/visi/misi/program. Buka pemilih di <code>http://localhost:3000/</code>, admin di <code>/admin.html</code>, statistik di <code>/statistik.html</code>. LAN memakai <code>http://IP-SERVER:3000/</code>.</p></section>
+<section><h2>Konfigurasi dan akses</h2><p>Perintah instalasi mengubah nama <code>.env.example</code> menjadi <code>.env</code>. Isi <code>.env</code> dengan <code>PORT</code>, rahasia sesi acak minimal 32 karakter, username, dan password admin kuat. Edit <code>config/site.js</code> untuk sekolah/logo; edit <code>config/paslon.js</code> untuk calon/foto/visi/misi/program. Buka pemilih di <code>http://localhost:3000/</code>, admin di <code>/admin.html</code>, statistik di <code>/statistik.html</code>. LAN memakai <code>http://IP-SERVER:3000/</code>.</p></section>
 <section><h2>Data dan troubleshooting</h2><p>Database: <code>data/election.sqlite</code>; backup: <code>backups/</code>; ekspor: <code>exports/</code>. Hentikan dengan <code>Ctrl+C</code>. Gunakan <code>npm run check</code>. Jika port bentrok ubah <code>PORT</code>; jika LAN gagal periksa firewall. sql.js tidak membutuhkan compiler.</p></section>
 </body></html>

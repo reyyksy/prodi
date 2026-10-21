@@ -12,25 +12,25 @@
 <section><h2>1. Instalasi Windows PowerShell</h2><pre>git clone https://github.com/reyyksy/prodi.git
 Set-Location prodi
 npm install
-Copy-Item .env.example .env
+Rename-Item .env.example .env
 notepad .env
 npm run init-db
 npm start</pre></section>
 <section><h2>2. Instalasi Linux</h2><pre>git clone https://github.com/reyyksy/prodi.git
 cd prodi
 npm install
-cp .env.example .env
+mv .env.example .env
 nano .env
 npm run init-db
 npm start</pre></section>
 <section><h2>3. Instalasi macOS</h2><pre>git clone https://github.com/reyyksy/prodi.git
 cd prodi
 npm install
-cp .env.example .env
+mv .env.example .env
 nano .env
 npm run init-db
 npm start</pre></section>
-<section><h2>4. Konfigurasi</h2><p>Isi <code>.env</code> dengan port, rahasia sesi acak minimal 32 karakter, username admin, dan password admin yang kuat. Jangan commit file ini.</p><p>Untuk identitas, edit <code>config/site.js</code>. Untuk nama, foto, nomor, visi, misi, dan program calon, edit <code>config/paslon.js</code>. Simpan gambar di <code>public/images/</code>.</p></section>
+<section><h2>4. Konfigurasi</h2><p>Perintah instalasi mengubah nama <code>.env.example</code> menjadi <code>.env</code>. Isi <code>.env</code> dengan port, rahasia sesi acak minimal 32 karakter, username admin, dan password admin yang kuat. Jangan commit file ini.</p><p>Untuk identitas, edit <code>config/site.js</code>. Untuk nama, foto, nomor, visi, misi, dan program calon, edit <code>config/paslon.js</code>. Simpan gambar di <code>public/images/</code>.</p></section>
 <section><h2>5. Membuka aplikasi</h2><p>Pemilih: <code>http://localhost:3000/</code>. Admin: <code>/admin.html</code>. Statistik: <code>/statistik.html</code>. Tutorial: <code>/tutorial/index.html</code>. Dari LAN gunakan <code>http://IP-SERVER:3000/</code> dan izinkan Node.js di firewall.</p></section>
 <section><h2>6. Data dan masalah umum</h2><p>Database berada di <code>data/election.sqlite</code>, backup di <code>backups/</code>, dan ekspor di <code>exports/</code>. Hentikan server dengan <code>Ctrl+C</code>. Jalankan <code>npm run check</code> untuk pemeriksaan sintaks. Jika port bentrok, ubah <code>PORT</code> di <code>.env</code>. Database memakai sql.js sehingga tidak membutuhkan compiler.</p></section>
 </body>

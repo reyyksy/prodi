@@ -8,7 +8,7 @@ Aplikasi pemilihan ketua dan wakil program keahlian berbasis Node.js, Express, d
 git clone https://github.com/reyyksy/prodi.git
 Set-Location prodi
 npm install
-Copy-Item .env.example .env
+Rename-Item .env.example .env
 notepad .env
 npm run init-db
 npm start
@@ -20,7 +20,7 @@ npm start
 git clone https://github.com/reyyksy/prodi.git
 cd prodi
 npm install
-cp .env.example .env
+mv .env.example .env
 nano .env
 npm run init-db
 npm start
@@ -32,13 +32,13 @@ npm start
 git clone https://github.com/reyyksy/prodi.git
 cd prodi
 npm install
-cp .env.example .env
+mv .env.example .env
 nano .env
 npm run init-db
 npm start
 ```
 
-Gunakan Node.js LTS 20 atau 22 dan npm 10+. Di `.env`, isi `PORT`, `SESSION_SECRET` acak minimal 32 karakter, `ADMIN_DEFAULT_USER`, dan `ADMIN_DEFAULT_PASS`. Jangan commit `.env`.
+Gunakan Node.js LTS 20 atau 22 dan npm 10+. Perintah di atas mengubah nama `.env.example` menjadi `.env`. Buka `.env`, lalu isi `PORT`, `SESSION_SECRET` acak minimal 32 karakter, `ADMIN_DEFAULT_USER`, dan `ADMIN_DEFAULT_PASS`. Jangan commit `.env`.
 
 Setelah server berjalan, buka `http://localhost:3000/`, `http://localhost:3000/admin.html`, atau `http://localhost:3000/statistik.html`. Untuk LAN, buka `http://IP-SERVER:3000/` dari komputer lain pada jaringan yang sama dan izinkan Node.js pada firewall Windows. Ganti port dengan mengubah `PORT=8080` di `.env`.
 
