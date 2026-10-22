@@ -9,12 +9,12 @@ module.exports = [
     ballot_number: 1,
     chair_name: "Putri Aulia. S",
     vice_name: "Desqi",
-    vision: "Mewujudkan Prodi TJKT SMK Yasbam yang unggul di bidang networking dan cloud computing, berdaya saing industri, berlandaskan akhlaqul karimah.",
-    mission: "1. Menyelenggarakan pelatihan dan sertifikasi mikrotik/cisco bagi siswa TJKT.\n2. Mengoptimalkan sarana laboratorium jaringan komputer dengan manajemen modern.\n3. Menumbuhkan budaya kolaborasi, kedisiplinan kerja, dan inovasi teknologi.",
+    vision: "Menjadikan jurusan TKJ sebagai wadah bagi siswa untuk mengembangkan kompetensi, karakter, kreativitas, dan kesiapan menghadapi perkembangan teknologi serta dunia kerja.",
+    mission: "1. Meningkatkan pengalaman dan wawasan siswa tentang dunia industri.\n2. Meningkatkan pengalaman siswa melalui proyek nyata dan kegiatan teknologi.\n3. Mendorong siswa untuk berani mencoba, bertanya, dan berinovasi.",
     programs: [
-      "TJKT Cyber & Network Bootcamp: Pelatihan praktikum intensif routing, switching & server.",
-      "Laboratorium Care & Troubleshooting Clinic: Layanan berkala perbaikan perangkat jaringan.",
-      "Kunjungan Industri & Guest Lecture dari Network Engineer terkemuka."
+      "Network Challenge: kompetisi tahunan membuat kabel FO terbaik untuk kelas 10.",
+      "Network Challenge: memecahkan masalah jaringan dengan Cisco Packet Tracer untuk kelas 12.",
+      "Network Challenge: menghitung IP secara lengkap dan tercepat untuk kelas 11."
     ],
     photo_path: "/images/paslon-1.jpg"
   },
@@ -22,25 +22,25 @@ module.exports = [
     ballot_number: 2,
     chair_name: "Fadlan Fauzan",
     vice_name: "Anisa",
-    vision: "Menciptakan komunitas TJKT yang berkarakter islami, adaptif terhadap perkembangan telekomunikasi dan IoT, serta mandiri dalam berkarya.",
-    mission: "1. Meningkatkan keterlibatan siswa dalam proyek IoT dan implementasi jaringan nirkabel.\n2. Mendorong sikap birrul walidain dan etos kerja profesional dalam setiap kegiatan kejuruan.\n3. Mempererat sinergi antara alumni TJKT SMK Yasbam dengan adik kelas.",
+    vision: "Mewujudkan jurusan TKJ yang aktif, inovatif, dan menjadi wadah bagi seluruh siswa untuk berkembang dalam bidang teknologi, kreativitas, serta kerjasama dengan mengutamakan kekeluargaan dan aksi nyata yang berdampak positif untuk semua.",
+    mission: "1. Meningkatkan kekompakan dan rasa kebersamaan antar siswa TKJ.\n2. Mendorong siswa mengembangkan kemampuan teknologi dan jaringan komputer.\n3. Menyelenggarakan kegiatan edukatif, kreatif, dan bermanfaat.\n4. Membangun budaya saling membantu dan berbagi ilmu.\n5. Membuka ruang ide, aspirasi, dan kritik positif.\n6. Menjalankan organisasi dengan tanggung jawab dan semangat kerja tim.",
     programs: [
-      "IoT Innovation Fair: Pameran inovasi perangkat smart monitoring berbasis sensor & WiFi.",
-      "TJKT Mentorship & Alumni Connect: Berbagi pengalaman industri dan persiapan magang/PKL.",
-      "Kajian Karakter Vokasi Rasa Nyantri: Penguatan mental dan moral generasi teknologi."
+      "Kegiatan edukatif dan kreatif yang memperkuat kekompakan siswa TKJ.",
+      "Forum aspirasi dan berbagi ilmu antar siswa TKJ.",
+      "Kolaborasi teknologi dan jaringan komputer dengan aksi nyata."
     ],
     photo_path: "/images/paslon-2.jpg"
   },
   {
     ballot_number: 3,
-    chair_name: "R. Muhammad Duyeh (BADUYY)",
-    vice_name: "Athar Stecu",
-    vision: "Menjadikan keahlian TJKT SMK Yasbam sebagai pelopor inovasi sistem otomasi jaringan, keamanan siber, dan technopreneurship berstandar nasional.",
-    mission: "1. Melatih kesiapan siswa menghadapi uji kompetensi keahlian dan lomba keterampilan siswa (LKS).\n2. Membangun unit produksi jasa instalasi jaringan dan perakitan komputer sekolah.\n3. Mengintegrasikan teknologi ramah lingkungan dalam infrastruktur IT laboratorium.",
+    chair_name: "R. Muhammad Duyeh",
+    vice_name: "Athar",
+    vision: "Melanjutkan program-program yang sudah berjalan baik selama ini dan memperbaiki serta meningkatkan fasilitas TJKT untuk kenyamanan belajar dan memaksimalkan kemampuan siswa-siswi.",
+    mission: "1. Layanan pinjaman kabel RJ45 (LAN) dan perapihan router atau alat praktik di setiap lab TJKT.\n2. Layanan konsultasi untuk bimbingan belajar bersama dan keluhan fasilitas TJKT.\n3. Melanjutkan bisnis TJKT.",
     programs: [
-      "Cyber Defense & Ethical Hacking Intro: Workshop keamanan siber dasar dan proteksi jaringan.",
-      "Unit Bisnis TJKT Service Corner: Praktik wirausaha jasa networking untuk umum dan warga sekolah.",
-      "Pekan Olahraga & E-Sport TJKT: Mempererat solidaritas dan sportivitas antarkelas."
+      "Layanan pinjaman kabel RJ45 dan perapihan alat praktik di lab TJKT.",
+      "Layanan konsultasi bimbingan belajar dan fasilitas TJKT.",
+      "Melanjutkan bisnis TJKT."
     ],
     photo_path: "/images/paslon-3.jpg"
   }

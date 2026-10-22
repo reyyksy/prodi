@@ -8,6 +8,19 @@ const { hashPassword, verifyPassword } = require('../auth');
 const { generateElectionExcel } = require('../services/excelService');
 const defaultCandidates = require('../../config/paslon');
 
+function updateDevelopmentEnvPassword(password) {
+  const envPath = path.resolve(__dirname, '../../.env');
+  if (!fs.existsSync(envPath)) return false;
+  const source = fs.readFileSync(envPath, 'utf8');
+  const line = `ADMIN_DEFAULT_PASS=${password}`;
+  const updated = /^ADMIN_DEFAULT_PASS=.*$/m.test(source)
+    ? source.replace(/^ADMIN_DEFAULT_PASS=.*$/m, line)
+    : `${source.replace(/\s*$/, '')}\n${line}\n`;
+  fs.writeFileSync(envPath, updated, 'utf8');
+  process.env.ADMIN_DEFAULT_PASS = password;
+  return true;
+}
+
 // Semua rute di bawah ini dilindungi requireAuth
 router.use(requireAuth);
 
@@ -21,7 +34,8 @@ router.get('/overview', (req, res) => {
 
     // PC summaries
     const pcDevices = db.prepare(`
-      SELECT p.id, p.pc_number, p.display_name, p.configured_ip, p.is_enabled,
+      SELECT p.id, p.pc_number, p.display_name, p.is_enabled,
+             (SELECT COUNT(*) FROM pc_sessions ps WHERE ps.pc_id = p.id AND ps.session_status = 'completed') as vote_count,
              s.session_status, s.started_at, s.completed_at
       FROM pc_devices p
       LEFT JOIN pc_sessions s ON s.id = (
@@ -58,7 +72,8 @@ router.get('/overview', (req, res) => {
 router.get('/pc-devices', (req, res) => {
   try {
     const pcDevices = db.prepare(`
-      SELECT p.id, p.pc_number, p.display_name, p.configured_ip, p.is_enabled,
+      SELECT p.id, p.pc_number, p.display_name, p.is_enabled,
+             (SELECT COUNT(*) FROM pc_sessions ps WHERE ps.pc_id = p.id AND ps.session_status = 'completed') as vote_count,
              COALESCE(s.session_status, 'ready') as session_status,
              s.started_at, s.completed_at
       FROM pc_devices p
@@ -215,6 +230,9 @@ router.post('/election/reset', async (req, res) => {
       // Kembalikan status ke draft
       db.prepare("UPDATE settings SET value = 'draft', updated_at = CURRENT_TIMESTAMP WHERE key = 'election_status'").run();
 
+      // Buang snapshot lama agar statistik setelah reset kembali benar-benar nol.
+      db.prepare("DELETE FROM settings WHERE key IN ('public_stats_cache', 'public_stats_last_updated', 'public_stats_next_update')").run();
+
       // Reset semua status sesi PC ke ready
       const pcs = db.prepare('SELECT id FROM pc_devices').all();
       for (const pc of pcs) {
@@ -291,6 +309,7 @@ router.post('/password', (req, res) => {
 
     const newHashed = hashPassword(new_password);
     db.prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?').run(newHashed, req.admin.id);
+    const envUpdated = updateDevelopmentEnvPassword(new_password);
 
     db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
       'CHANGE_PASSWORD',
@@ -299,7 +318,12 @@ router.post('/password', (req, res) => {
       req.ip
     );
 
-    res.json({ success: true, message: 'Password berhasil diperbarui.' });
+    res.json({
+      success: true,
+      message: envUpdated
+        ? 'Password berhasil diperbarui di database dan .env development.'
+        : 'Password berhasil diperbarui di database. File .env tidak ditemukan.'
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal memperbarui password' });
   }

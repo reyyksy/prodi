@@ -11,7 +11,11 @@
   const stackedBarContainer = document.getElementById('stackedBarContainer');
   const chartLegendContainer = document.getElementById('chartLegendContainer');
   const chartProportionSummary = document.getElementById('chartProportionSummary');
-  const btnManualRefresh = document.getElementById('btnManualRefresh');
+  const systemStatusBanner = document.getElementById('systemStatusBanner');
+  const systemStatusText = document.getElementById('systemStatusText');
+  const systemStatusTime = document.getElementById('systemStatusTime');
+  const systemCountdown = document.getElementById('systemCountdown');
+  let nextUpdateTimestamp = null;
 
   // Palette warna berstandar rasio kontras 4.5:1+ untuk tiap nomor urut
   const CANDIDATE_COLORS = [
@@ -29,13 +33,30 @@
         renderStatistics(json.data);
       }
     } catch (e) {
+      statsMainTitle.textContent = 'SERVER OFFLINE';
+      statsSubtitle.textContent = 'Statistik sementara tidak dapat diperbarui karena server tidak terhubung.';
+      finalStatusAlert.style.display = 'block';
+      finalStatusAlert.style.background = '#fef2f2';
+      finalStatusAlert.style.color = '#b91c1c';
+      finalStatusAlert.textContent = 'KONDISI: Server mati atau dijeda. Data terakhir ditampilkan bila tersedia.';
       statsCandidatesContainer.innerHTML = `<div style="text-align: center; color: #dc2626; padding: 2rem;">Gagal memuat data statistik: ${e.message}</div>`;
+      systemStatusBanner.style.background = '#fef2f2';
+      systemStatusBanner.style.color = '#b91c1c';
+      systemStatusText.textContent = '🔴 SERVER OFFLINE — statistik tidak dapat diperbarui';
+      systemStatusTime.textContent = 'Menunggu koneksi kembali';
+      systemCountdown.textContent = '--:--';
     }
   }
 
   function renderStatistics(data) {
     const isClosed = data.election_status === 'closed';
     statsTotalVotes.textContent = data.total_votes;
+    const statusLabels = { open: '🟢 SERVER AKTIF — PEMILIHAN SEDANG BERJALAN', paused: '🟠 SERVER AKTIF — PEMILIHAN DIJEDA', draft: '⚪ SERVER AKTIF — PEMILIHAN BELUM DIMULAI', closed: '🔵 SERVER AKTIF — HASIL FINAL / PEMILIHAN DITUTUP' };
+    systemStatusText.textContent = statusLabels[data.election_status] || 'SERVER AKTIF';
+    nextUpdateTimestamp = data.next_update ? new Date(data.next_update).getTime() : null;
+    systemStatusTime.textContent = `Pembaruan data: ${data.next_update ? new Date(data.next_update).toLocaleTimeString('id-ID') : 'final'}`;
+    systemStatusBanner.style.background = isClosed ? '#dcfce7' : (data.election_status === 'paused' ? '#fffbeb' : '#eef2ff');
+    systemStatusBanner.style.color = isClosed ? '#166534' : (data.election_status === 'paused' ? '#92400e' : '#3730a3');
 
     if (data.last_updated) {
       const d = new Date(data.last_updated);
@@ -63,8 +84,16 @@
       }
     } else {
       statsMainTitle.textContent = 'HASIL SEMENTARA PEMILIHAN';
-      statsSubtitle.textContent = 'Data perolehan suara terproteksi dan teragregasi secara otomatis dan anonim.';
-      finalStatusAlert.style.display = 'none';
+      if (data.election_status === 'paused') {
+        statsSubtitle.textContent = 'Server hidup, tetapi pemilihan sedang dijeda oleh admin.';
+        finalStatusAlert.style.display = 'block';
+        finalStatusAlert.style.background = '#fffbeb';
+        finalStatusAlert.style.color = '#b45309';
+        finalStatusAlert.textContent = 'KONDISI: Pemilihan dijeda. Statistik belum final.';
+      } else {
+        statsSubtitle.textContent = 'Data perolehan suara sementara dan anonim.';
+        finalStatusAlert.style.display = 'none';
+      }
     }
 
     // 1. Render Diagram Perbandingan Batang Horizontal Terpadu (Stacked Bar)
@@ -122,6 +151,7 @@
   }
 
   function renderCandidateRows(data, isClosed) {
+    statsCandidatesContainer.classList.add('stats-candidates');
     statsCandidatesContainer.innerHTML = data.candidates.map((c, i) => {
       const isWinner = isClosed && data.winner_candidate_ids.includes(c.id) && data.result_status === 'decided';
       const isTie = isClosed && data.winner_candidate_ids.includes(c.id) && data.result_status === 'tie';
@@ -167,21 +197,19 @@
   // Polling otomatis memastikan monitor berubah tanpa reload manual.
   setInterval(loadStatistics, 5000);
 
-  btnManualRefresh.addEventListener('click', async () => {
-    btnManualRefresh.disabled = true;
-    btnManualRefresh.textContent = 'Menyinkronkan...';
-    try {
-      const res = await fetch(`${API_BASE}/public/statistics/refresh`, { method: 'POST' });
-      const json = await res.json();
-      if (json.success) {
-        renderStatistics(json.data);
-      }
-    } catch (e) {
-      alert('Gagal menyinkronkan data.');
+  // Countdown memakai timestamp dari server, sehingga semua monitor menghitung
+  // menuju waktu yang sama dan refresh browser tidak mengatur ulang waktunya.
+  setInterval(() => {
+    if (!nextUpdateTimestamp) {
+      systemCountdown.textContent = 'FINAL';
+      return;
     }
-    btnManualRefresh.disabled = false;
-    btnManualRefresh.textContent = 'Sinkronkan Sekarang';
-  });
+    const remaining = Math.max(0, nextUpdateTimestamp - Date.now());
+    const totalSeconds = Math.floor(remaining / 1000);
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    systemCountdown.textContent = `${minutes}:${seconds}`;
+  }, 1000);
 
   document.addEventListener('DOMContentLoaded', () => {
     loadStatistics();

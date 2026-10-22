@@ -38,9 +38,45 @@ npm run init-db
 npm start
 ```
 
-Gunakan Node.js LTS 20 atau 22 dan npm 10+. Perintah di atas mengubah nama `.env.example` menjadi `.env`. Buka `.env`, lalu isi `PORT`, `SESSION_SECRET` acak minimal 32 karakter, `ADMIN_DEFAULT_USER`, dan `ADMIN_DEFAULT_PASS`. Jangan commit `.env`.
+Gunakan Node.js LTS 20 atau 22 dan npm 10+. Perintah di atas mengubah nama `.env.example` menjadi `.env`. Konfigurasi `.env` yang wajib diganti sebelum dipakai sungguh-sungguh adalah `SESSION_SECRET`, `ADMIN_DEFAULT_USER`, dan `ADMIN_DEFAULT_PASS`. `PORT` boleh tetap `3000`; ubah hanya jika port tersebut bentrok. `SESSION_SECRET` saat ini disiapkan untuk keamanan sesi dan harus berupa teks acak minimal 32 karakter. Jangan commit `.env`.
 
-Setelah server berjalan, buka `http://localhost:3000/`, `http://localhost:3000/admin.html`, atau `http://localhost:3000/statistik.html`. Untuk LAN, buka `http://IP-SERVER:3000/` dari komputer lain pada jaringan yang sama dan izinkan Node.js pada firewall Windows. Ganti port dengan mengubah `PORT=8080` di `.env`.
+Ringkasan `.env`:
+
+```env
+PORT=3000                         # Opsional; port server
+SESSION_SECRET=teks-acak-32-karakter  # Wajib diganti
+ADMIN_DEFAULT_USER=admin          # Wajib diganti untuk instalasi nyata
+ADMIN_DEFAULT_PASS=password-kuat  # Wajib diganti untuk instalasi nyata
+```
+
+Pada clone development ini login sementara adalah `admin` / `admin12345`. Password dari halaman admin juga memperbarui `ADMIN_DEFAULT_PASS` di `.env` development. `SESSION_SECRET` tidak boleh memakai nama sekolah, `admin123`, atau password admin.
+
+Setelah server berjalan, buka `http://localhost:3000/`, `http://localhost:3000/admin.html`, atau `http://localhost:3000/statistik.html`. Untuk LAN, buka `http://IP-SERVER:3000/?pc=1` sampai `?pc=5` dari komputer pemilih. Identitas bilik memakai parameter `pc`, bukan IP PC, dan setiap suara otomatis membuka sesi pemilih berikutnya. Ganti port dengan mengubah `PORT=8080` di `.env`.
+
+## Cek server dari terminal
+
+Jalankan dari folder development `/home/reihan/repo/me/prodi1/prodi` (atau folder clone proyek pada Windows/macOS):
+
+```text
+node --version
+npm --version
+npm run check
+npm run init-db
+npm start
+```
+
+Biarkan server berjalan, buka terminal kedua, lalu cek:
+
+```text
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/public/election-status
+```
+
+Respons health harus memuat `"server_running":true`. Pada PowerShell gunakan `Invoke-WebRequest http://localhost:3000/api/health` bila `curl` tidak tersedia. Hentikan server dengan `Ctrl+C`; jika port bentrok, ubah `PORT` di `.env` dan gunakan port itu pada URL pengecekan.
+
+## Development dan clone release
+
+Perubahan dikerjakan dan dicek di `/home/reihan/repo/me/prodi1/prodi`. Hasil final disiapkan di clone fresh `/home/reihan/repo/me/prodi` untuk commit dan push GitHub. Di clone release, ulangi `npm install`, `npm run check`, `npm run init-db`, dan `npm start` sebelum `git status` dan push. Jangan menyalin `node_modules`, `data`, `backups`, `exports`, atau `.env`.
 
 ## Mengubah identitas
 

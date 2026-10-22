@@ -9,15 +9,28 @@
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Fira+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <style>
+    html, body { height: 100%; overflow: hidden; }
+    .stats-page { height: 100vh; overflow: hidden; }
+    .stats-candidates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: stretch; }
+    .stats-candidates .candidate-stat-row { margin-bottom: 0; }
+    .stats-candidates .candidate-stat-row { min-width: 0; min-height: 220px; gap: .9rem; padding: 1rem; align-items: flex-start; flex-direction: column; }
+    .stats-candidates .stat-photo { width: 58px; height: 58px; }
+    .stats-candidates .stat-info { width: 100%; min-width: 0; }
+    .stats-candidates .stat-names { font-size: 1rem; overflow-wrap: anywhere; }
+    .stats-candidates .stat-numbers { width: 100%; min-width: 0; text-align: left; display: flex; align-items: baseline; gap: .6rem; }
+    .stats-candidates .stat-count { font-size: 1.5rem; }
+    .stats-candidates .winner-crown-badge { top: .65rem; right: .65rem; font-size: .65rem; }
+    @media (max-width: 900px) { html, body { overflow: auto; } .stats-page { height: auto; overflow: visible; } .stats-candidates { grid-template-columns: 1fr; } }
     .stats-container {
       max-width: 1050px;
-      margin: 2rem auto;
+      margin: 1rem auto;
       background: #ffffff;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
-      padding: 2.25rem;
+      padding: 1.25rem;
       box-shadow: var(--shadow-md);
     }
+    .system-status-banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem 1rem; margin-bottom: 1rem; border-radius: 10px; font-weight: 700; }
 
     .stats-header-banner {
       display: flex;
@@ -188,6 +201,8 @@
       position: relative;
     }
 
+    .stat-bar-fill { min-width: 0; overflow: hidden; white-space: nowrap; }
+
     .stat-bar-fill {
       height: 100%;
       transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -260,7 +275,7 @@
     }
   </style>
 </head>
-<body>
+<body class="stats-page">
 
   <!-- Header -->
   <header class="app-header">
@@ -294,15 +309,19 @@
           </p>
           <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;" id="timerContainer">
             <span style="font-size: 0.75rem; color: #64748b;" id="lastUpdatedLabel">Update Terakhir: -</span>
-            <button class="btn-secondary cursor-pointer" id="btnManualRefresh" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" title="Perbarui paksa snapshot sistem secara manual">
-              Sinkronkan Sekarang
-            </button>
+            <span class="system-interval-info">Pembaruan otomatis setiap 15 menit</span>
           </div>
         </div>
         <div class="total-counter-box">
           <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.85;">Total Suara Masuk</div>
           <div style="font-size: 2.25rem; font-weight: 700; font-family: var(--font-mono);" id="statsTotalVotes">0</div>
         </div>
+      </div>
+
+      <div id="systemStatusBanner" class="system-status-banner" style="background:#eef2ff;color:#3730a3;">
+        <span id="systemStatusText">Menghubungkan ke server...</span>
+        <span id="systemStatusTime" style="font-size:.8rem;font-weight:500;">Memeriksa status</span>
+        <span id="systemCountdown" style="font-size:1.05rem;font-family:var(--font-mono);white-space:nowrap;">--:--</span>
       </div>
 
       <!-- Hasil Akhir / Status Bar jika Final -->

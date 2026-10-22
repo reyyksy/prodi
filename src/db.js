@@ -305,6 +305,10 @@ async function initDatabase() {
   if (!existingAdmin) {
     const hashed = hashPassword(adminPass);
     db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run(adminUser, hashed);
+  } else if (process.env.ADMIN_DEFAULT_PASS) {
+    // .env adalah sumber konfigurasi password admin saat server diinisialisasi ulang.
+    const hashed = hashPassword(adminPass);
+    db.prepare('UPDATE admin_users SET password_hash = ? WHERE username = ?').run(hashed, adminUser);
   }
 
   // PC 1 - PC 5
@@ -344,6 +348,15 @@ async function initDatabase() {
         JSON.stringify(c.programs || []),
         c.photo_path
       );
+    }
+  } else {
+    // Sinkronkan identitas dan visi-misi dari konfigurasi terbaru tanpa menghapus suara.
+    const updateCand = db.prepare(`
+      UPDATE candidates SET chair_name = ?, vice_name = ?, vision = ?, mission = ?, programs_json = ?, photo_path = ?
+      WHERE ballot_number = ?
+    `);
+    for (const c of defaultCandidates) {
+      updateCand.run(c.chair_name, c.vice_name, c.vision, c.mission, JSON.stringify(c.programs || []), c.photo_path, c.ballot_number);
     }
   }
 

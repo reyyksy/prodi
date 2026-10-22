@@ -65,10 +65,6 @@ router.post('/', (req, res) => {
       throw new Error('Tidak ada sesi yang disiapkan untuk PC ini.');
     }
 
-    if (latestSession.session_status === 'completed') {
-      throw new Error('Sesi untuk PC ini sudah selesai memilih. Harap tunggu panitia menyiapkan sesi berikutnya.');
-    }
-
     // Update status sesi PC menjadi completed
     const updateResult = db.prepare(`
       UPDATE pc_sessions
@@ -86,6 +82,9 @@ router.post('/', (req, res) => {
       INSERT INTO votes (candidate_id, recorded_at)
       VALUES (?, CURRENT_TIMESTAMP)
     `).run(candidate_id);
+
+    // Sesi pemilih berikutnya siap otomatis; admin tidak perlu menyetujui/reset PC.
+    db.prepare(`INSERT INTO pc_sessions (pc_id, session_status) VALUES (?, 'ready')`).run(pc_id);
 
     return true;
   });

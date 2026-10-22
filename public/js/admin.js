@@ -416,7 +416,7 @@
         const st = p.session_status || 'ready';
         let label = 'Siap Memilih';
         if (st === 'in_progress') label = 'Sedang Memilih';
-        if (st === 'completed') label = 'Sudah Memilih - Menunggu Panitia';
+        if (st === 'completed') label = 'Selesai (sesi berikutnya otomatis siap)';
 
         return `
           <div class="pc-card">
@@ -425,19 +425,10 @@
               <span class="pc-status-badge ${st}">${label}</span>
             </div>
             <div class="pc-ip-meta">
-              IP Terdaftar: ${p.configured_ip || 'Otomatis'}<br>
+              Jumlah pemungutan dari PC ini: ${p.vote_count || 0}<br>
               <a href="/index.html?pc=${p.pc_number}" target="_blank" style="color: var(--color-teal); text-decoration: none; font-size: 0.75rem;">
                 🔗 Buka Layar Bilik PC #${p.pc_number}
               </a>
-            </div>
-            <div class="pc-actions">
-              <button class="btn-prepare-pc cursor-pointer" onclick="window.adminApp.preparePc(${p.id})">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M23 4v6h-6"></path>
-                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                </svg>
-                Siapkan Pemilih Berikutnya
-              </button>
             </div>
           </div>
         `;

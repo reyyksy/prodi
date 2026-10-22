@@ -108,9 +108,6 @@
 
         pcIdentifierLabel.textContent = currentPc ? currentPc.display_name : 'PC Klien';
 
-        if (currentSession && currentSession.session_status === 'completed') {
-          showSuccessScreen();
-        }
       }
     } catch (e) {
       console.warn('Gagal memuat status PC:', e);

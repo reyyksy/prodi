@@ -58,11 +58,31 @@ router.get('/statistics', (req, res) => {
     const nextUpdateRow = db.prepare("SELECT value FROM settings WHERE key = 'public_stats_next_update'").get();
     const cacheRow = db.prepare("SELECT value FROM settings WHERE key = 'public_stats_cache'").get();
 
-    // Monitor publik selalu membaca agregat terkini dari database backend.
-    // Tidak ada data suara yang dihitung atau disimpan di browser.
-    const statsData = calculateCurrentStats();
-    const lastUpdated = new Date().toISOString();
-    const nextUpdate = null;
+    let statsData;
+    let lastUpdated;
+    let nextUpdate;
+
+    if (currentStatus === 'closed') {
+      // Setelah ditutup, hasil final selalu membaca seluruh suara terkini.
+      statsData = calculateCurrentStats();
+      lastUpdated = new Date().toISOString();
+      nextUpdate = null;
+    } else {
+      const now = Date.now();
+      const cacheNext = nextUpdateRow ? new Date(nextUpdateRow.value).getTime() : 0;
+      if (!cacheRow || !lastUpdatedRow || !cacheNext || now >= cacheNext) {
+        const snapshot = snapshotPublicStats('scheduled');
+        statsData = snapshot.stats;
+        lastUpdated = snapshot.last_updated;
+        nextUpdate = snapshot.next_update;
+      } else {
+        statsData = JSON.parse(cacheRow.value);
+        lastUpdated = lastUpdatedRow.value;
+        nextUpdate = nextUpdateRow.value;
+      }
+      // Status operasional harus selalu real-time meskipun jumlah suara masih snapshot.
+      statsData = { ...statsData, election_status: currentStatus };
+    }
 
     res.json({
       success: true,
@@ -70,7 +90,8 @@ router.get('/statistics', (req, res) => {
         ...statsData,
         last_updated: lastUpdated,
         next_update: nextUpdate,
-        server_time: new Date().toISOString()
+        server_time: new Date().toISOString(),
+        server_running: true
       }
     });
   } catch (err) {
@@ -105,11 +126,6 @@ router.get('/pc-info', (req, res) => {
     if (pcNum) {
       pc = db.prepare('SELECT id, pc_number, display_name, is_enabled FROM pc_devices WHERE pc_number = ?').get(pcNum);
     }
-    if (!pc) {
-      const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-      pc = db.prepare('SELECT id, pc_number, display_name, is_enabled FROM pc_devices WHERE configured_ip = ?').get(clientIp);
-    }
-
     if (!pc) {
       pc = db.prepare('SELECT id, pc_number, display_name, is_enabled FROM pc_devices ORDER BY id ASC LIMIT 1').get();
     }
