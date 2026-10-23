@@ -10,8 +10,13 @@ const publicRoutes = require('./src/routes/public');
 const votesRoutes = require('./src/routes/votes');
 const { router: authRouter } = require('./src/routes/authRoutes');
 const adminRouter = require('./src/routes/admin');
+const onlineRouter = require('./src/routes/online');
 
 const app = express();
+// Mendukung akses langsung LAN maupun satu reverse proxy/port-forwarder.
+// Nilai 1 membuat Express memakai alamat client di balik proxy terdekat,
+// sekaligus membuat express-rate-limit dapat memproses X-Forwarded-For.
+app.set('trust proxy', 1);
 // Default port 3000 jika .env tidak ada
 const PORT = process.env.PORT || 3000;
 
@@ -117,10 +122,12 @@ async function startServer() {
   app.use('/api/votes', votesRoutes);
   app.use('/api/auth', authRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/online', onlineRouter);
 
   // File Statis Publik (Client)
   const publicDir = path.resolve(__dirname, 'public');
   app.use(express.static(publicDir));
+  app.use('/online', express.static(path.resolve(__dirname, 'online'), { dotfiles: 'deny' }));
 
   // Route khusus untuk /tutorial
   app.use('/tutorial', express.static(path.resolve(__dirname, 'tutorial')));

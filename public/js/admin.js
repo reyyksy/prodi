@@ -505,6 +505,31 @@
               </div>
             `).join('')}
           `;
+          const source = await (await fetch(`${API_BASE}/admin/online-overview`, { credentials: 'include' })).json();
+          if (source.success) {
+            const s = source.data;
+            document.getElementById('sourceStatsContainer').innerHTML = `
+              <h3 style="margin-bottom:1rem">Rekap Sumber Pemungutan</h3>
+              <div class="stats-overview-grid">
+                <div class="stat-metric-card"><div class="stat-metric-label">Total Gabungan</div><div class="stat-metric-value">${s.total_votes}</div></div>
+                <div class="stat-metric-card"><div class="stat-metric-label">Total Lokal / PC</div><div class="stat-metric-value">${s.local_votes}</div></div>
+                <div class="stat-metric-card"><div class="stat-metric-label">Total Online</div><div class="stat-metric-value">${s.online_votes}</div></div>
+              </div>
+              <h4 style="margin:1rem 0 .5rem">Jumlah Suara Lokal per PC</h4>
+              <div class="data-table-container"><table class="data-table"><thead><tr><th>PC</th><th>Jumlah Pemungutan</th></tr></thead><tbody>${s.pc_votes.map(p => `<tr><td>${p.display_name} (PC ${p.pc_number})</td><td>${p.vote_count}</td></tr>`).join('')}</tbody></table></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin:1.5rem 0 .5rem;gap:1rem;flex-wrap:wrap"><h4>Status Akun Online</h4><button class="btn-danger cursor-pointer" id="btnResetOnlineClients" style="padding:.55rem .85rem">Reset Status Akun Online</button></div>
+              <div class="data-table-container"><table class="data-table"><thead><tr><th>ID</th><th>Username</th><th>Status</th><th>Waktu</th></tr></thead><tbody>${s.online_clients.map(c => `<tr><td>${c.id}</td><td>${c.username}</td><td>${c.has_voted ? 'Sudah memilih' : 'Belum memilih'}</td><td>${c.voted_at ? new Date(c.voted_at).toLocaleString('id-ID') : '-'}</td></tr>`).join('')}</tbody></table></div>
+            `;
+            document.getElementById('btnResetOnlineClients').addEventListener('click', async () => {
+              if (!confirm('Reset semua akun online ke status BELUM MEMILIH? Suara yang sudah masuk tidak dihapus.')) return;
+              const password = prompt('Masukkan password admin untuk konfirmasi reset akun online:');
+              if (!password) return;
+              const reset = await fetch(`${API_BASE}/admin/online/reset`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ password }) });
+              const result = await reset.json();
+              alert(result.message || 'Reset selesai.');
+              if (result.success) this.loadStatistics();
+            });
+          }
         }
       } catch (e) {}
     },

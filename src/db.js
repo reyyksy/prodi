@@ -237,6 +237,8 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS votes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       candidate_id INTEGER NOT NULL,
+      source TEXT DEFAULT 'local',
+      local_pc_id INTEGER,
       recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (candidate_id) REFERENCES candidates(id)
     );
@@ -289,7 +291,24 @@ async function initDatabase() {
       ip_address TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS online_clients (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      has_voted INTEGER DEFAULT 0,
+      voted_at DATETIME
+    );
   `);
+
+  // Migrasi database lama: suara lama dianggap berasal dari bilik lokal.
+  const voteColumns = db.prepare('PRAGMA table_info(votes)').all();
+  if (!voteColumns.some(column => column.name === 'source')) {
+    db.prepare("ALTER TABLE votes ADD COLUMN source TEXT DEFAULT 'local'").run();
+  }
+  if (!voteColumns.some(column => column.name === 'local_pc_id')) {
+    db.prepare('ALTER TABLE votes ADD COLUMN local_pc_id INTEGER').run();
+  }
 
   // Settings inisialisasi
   const initSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
@@ -309,6 +328,20 @@ async function initDatabase() {
     // .env adalah sumber konfigurasi password admin saat server diinisialisasi ulang.
     const hashed = hashPassword(adminPass);
     db.prepare('UPDATE admin_users SET password_hash = ? WHERE username = ?').run(hashed, adminUser);
+  }
+
+  // Akun online hanya dibuat jika online/.env tersedia di server.
+  const onlineEnvPath = path.resolve(__dirname, '..', 'online', '.env');
+  if (fs.existsSync(onlineEnvPath)) {
+    const dotenv = require('dotenv');
+    const onlineEnv = dotenv.parse(fs.readFileSync(onlineEnvPath));
+    const insertOnline = db.prepare('INSERT INTO online_clients (id, username, password_hash) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET id = excluded.id, password_hash = excluded.password_hash');
+    for (let i = 1; i <= 100; i++) {
+      const id = onlineEnv[`CLIENT_${i}_ID`];
+      const username = onlineEnv[`CLIENT_${i}_USERNAME`];
+      const password = onlineEnv[`CLIENT_${i}_PASSWORD`];
+      if (id && username && password) insertOnline.run(id, username, hashPassword(password));
+    }
   }
 
   // PC 1 - PC 5

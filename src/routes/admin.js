@@ -7,6 +7,8 @@ const { requireAuth } = require('./authRoutes');
 const { hashPassword, verifyPassword } = require('../auth');
 const { generateElectionExcel } = require('../services/excelService');
 const defaultCandidates = require('../../config/paslon');
+const onlineRouter = require('./online');
+const resetOnlineSessions = onlineRouter.resetOnlineSessions;
 
 function updateDevelopmentEnvPassword(password) {
   const envPath = path.resolve(__dirname, '../../.env');
@@ -86,6 +88,39 @@ router.get('/pc-devices', (req, res) => {
     res.json({ success: true, data: pcDevices });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal mengambil status PC' });
+  }
+});
+
+// GET /api/admin/online-overview - Rekap sumber suara dan status akun online
+router.get('/online-overview', (req, res) => {
+  try {
+    const total = db.prepare('SELECT COUNT(*) as total FROM votes').get().total;
+    const onlineVotes = db.prepare("SELECT COUNT(*) as total FROM votes WHERE source = 'online'").get().total;
+    const localVotes = total - onlineVotes;
+    const pcVotes = db.prepare(`SELECT p.pc_number, p.display_name, COUNT(v.id) as vote_count FROM pc_devices p LEFT JOIN votes v ON v.source = 'local' AND v.local_pc_id = p.id GROUP BY p.id ORDER BY p.pc_number`).all();
+    const clients = db.prepare('SELECT id, username, has_voted, voted_at FROM online_clients ORDER BY username COLLATE NOCASE ASC').all();
+    res.json({ success: true, data: { total_votes: total, local_votes: localVotes, online_votes: onlineVotes, pc_votes: pcVotes, online_clients: clients } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memuat rekap lokal dan online: ' + err.message });
+  }
+});
+
+// POST /api/admin/online/reset - Kembalikan seluruh akun online ke status belum memilih
+router.post('/online/reset', (req, res) => {
+  try {
+    const { password } = req.body || {};
+    const user = db.prepare('SELECT password_hash FROM admin_users WHERE id = ?').get(req.admin.id);
+    if (!password || !user || !verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ success: false, message: 'Password admin salah. Reset akun online dibatalkan.' });
+    }
+    db.prepare('UPDATE online_clients SET has_voted = 0, voted_at = NULL').run();
+    resetOnlineSessions();
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'RESET_ONLINE_CLIENTS', 'Seluruh akun online dikembalikan ke status belum memilih.', req.admin.username, req.ip
+    );
+    res.json({ success: true, message: 'Status seluruh akun online berhasil di-reset.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal me-reset akun online: ' + err.message });
   }
 });
 
@@ -226,6 +261,8 @@ router.post('/election/reset', async (req, res) => {
     db.transaction(() => {
       // Hapus seluruh suara
       db.prepare('DELETE FROM votes').run();
+      db.prepare('UPDATE online_clients SET has_voted = 0, voted_at = NULL').run();
+      resetOnlineSessions();
 
       // Kembalikan status ke draft
       db.prepare("UPDATE settings SET value = 'draft', updated_at = CURRENT_TIMESTAMP WHERE key = 'election_status'").run();

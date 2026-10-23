@@ -53,6 +53,12 @@ Pada clone development ini login sementara adalah `admin` / `admin12345`. Passwo
 
 Setelah server berjalan, buka `http://localhost:3000/`, `http://localhost:3000/admin.html`, atau `http://localhost:3000/statistik.html`. Untuk LAN, buka `http://IP-SERVER:3000/?pc=1` sampai `?pc=5` dari komputer pemilih. Identitas bilik memakai parameter `pc`, bukan IP PC, dan setiap suara otomatis membuka sesi pemilih berikutnya. Ganti port dengan mengubah `PORT=8080` di `.env`.
 
+### Mode online sementara
+
+Frontend online tersedia di `http://localhost:3000/online/` dan memakai backend serta database yang sama. Salin `online/.env.example` menjadi `online/.env`, lalu isi akun client resmi di server. Jangan menaruh `online/.env` di folder frontend publik atau GitHub. Akun online dapat memilih satu kali; identitas akun disimpan terpisah dari pilihan suara. Admin online tetap menggunakan `/admin.html` dengan akun admin yang sama.
+
+`npm start` sekarang otomatis menjalankan backend port 3000 dan frontend online port 4000 sekaligus. Forward port 4000 saja. Akses online di `/`, admin di `/admin.html`, dan statistik di `/statistik.html`. Port 4000 meneruskan API ke backend port 3000. `npm run start:online` tetap tersedia untuk menjalankan frontend online saja saat debugging.
+
 ## Cek server dari terminal
 
 Jalankan dari folder development `/home/reihan/repo/me/prodi1/prodi` (atau folder clone proyek pada Windows/macOS):

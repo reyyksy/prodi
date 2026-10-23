@@ -4,9 +4,10 @@
   "description": "Sistem Pemilihan Ketua & Wakil Ketua Program Keahlian TJKT SMKS Yasbam Kota Bogor Berbasis LAN",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node start-all.js",
+    "start:online": "node online-server.js",
     "init-db": "node src/init-db.js",
-    "check": "node --check server.js && node --check src/db.js && node --check src/routes/admin.js && node --check src/routes/public.js && node --check src/routes/votes.js && node --check public/js/app.js && node --check public/js/admin.js && node --check public/js/statistik.js"
+    "check": "node --check start-all.js && node --check server.js && node --check online-server.js && node --check src/db.js && node --check src/routes/admin.js && node --check src/routes/online.js && node --check src/routes/public.js && node --check src/routes/votes.js && node --check public/js/app.js && node --check public/js/admin.js && node --check public/js/statistik.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

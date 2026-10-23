@@ -79,9 +79,9 @@ router.post('/', (req, res) => {
     // Masukkan suara murni: HANYA candidate_id & recorded_at
     // DILARANG: mencatat pc_id, IP, atau session_id
     db.prepare(`
-      INSERT INTO votes (candidate_id, recorded_at)
-      VALUES (?, CURRENT_TIMESTAMP)
-    `).run(candidate_id);
+      INSERT INTO votes (candidate_id, source, local_pc_id, recorded_at)
+      VALUES (?, 'local', ?, CURRENT_TIMESTAMP)
+    `).run(candidate_id, pc_id);
 
     // Sesi pemilih berikutnya siap otomatis; admin tidak perlu menyetujui/reset PC.
     db.prepare(`INSERT INTO pc_sessions (pc_id, session_status) VALUES (?, 'ready')`).run(pc_id);
