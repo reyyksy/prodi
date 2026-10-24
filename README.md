@@ -86,7 +86,7 @@ Perubahan dikerjakan dan dicek di `/home/reihan/repo/me/prodi1/prodi`. Hasil fin
 
 ## Mengubah identitas
 
-Edit `config/site.js` untuk nama sekolah, program, tahun ajaran, judul, logo, dan warna. Edit `config/paslon.js` untuk nomor urut, nama, foto, visi, misi, dan program kerja. Simpan foto di `public/images/` dalam format JPG, PNG, atau WebP dan gunakan path `/images/nama-file.jpg`. Kandidat yang sudah tersimpan di database tidak ditimpa otomatis.
+Edit satu file pusat `config/paslon.js` untuk nama sekolah, program, tahun ajaran, judul, logo, warna, nomor urut, nama, foto, visi, misi, dan program kerja. `config/site.js` hanya kompatibilitas internal dan tidak perlu diedit. Setelah mengubah konfigurasi, jalankan `npm run init-db` agar semua halaman dan statistik tersinkronisasi. Simpan foto di `public/images/` dan gunakan path `/images/nama-file.jpg`.
 
 Database aktif berada di `data/election.sqlite`, backup di `backups/`, dan laporan di `exports/`. Folder tersebut tidak masuk Git. Backup dan reset tersedia di panel admin; reset membuat backup otomatis. Hentikan server dengan `Ctrl+C`.
 

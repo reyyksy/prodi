@@ -313,9 +313,9 @@ async function initDatabase() {
   // Settings inisialisasi
   const initSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
   initSetting.run('election_status', 'draft');
-  initSetting.run('election_title', siteConfig.electionTitle);
-  initSetting.run('school_name', siteConfig.schoolName);
-  initSetting.run('academic_year', siteConfig.academicYear);
+  db.prepare("UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = 'election_title'").run(siteConfig.electionTitle);
+  db.prepare("UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = 'school_name'").run(siteConfig.schoolName);
+  db.prepare("UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = 'academic_year'").run(siteConfig.academicYear);
 
   // Default admin (admin / admin)
   const adminUser = process.env.ADMIN_DEFAULT_USER || 'admin';
@@ -335,12 +335,25 @@ async function initDatabase() {
   if (fs.existsSync(onlineEnvPath)) {
     const dotenv = require('dotenv');
     const onlineEnv = dotenv.parse(fs.readFileSync(onlineEnvPath));
-    const insertOnline = db.prepare('INSERT INTO online_clients (id, username, password_hash) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET id = excluded.id, password_hash = excluded.password_hash');
+    const insertOnline = db.prepare('INSERT INTO online_clients (id, username, password_hash) VALUES (?, ?, ?)');
+    const updateOnlineById = db.prepare('UPDATE online_clients SET username = ?, password_hash = ? WHERE id = ?');
+    const updateOnlineByUsername = db.prepare('UPDATE online_clients SET id = ?, password_hash = ? WHERE username = ?');
     for (let i = 1; i <= 100; i++) {
       const id = onlineEnv[`CLIENT_${i}_ID`];
       const username = onlineEnv[`CLIENT_${i}_USERNAME`];
       const password = onlineEnv[`CLIENT_${i}_PASSWORD`];
-      if (id && username && password) insertOnline.run(id, username, hashPassword(password));
+      if (id && username && password) {
+        const passwordHash = hashPassword(password);
+        const existingById = db.prepare('SELECT id FROM online_clients WHERE id = ?').get(id);
+        const existingByUsername = db.prepare('SELECT id FROM online_clients WHERE username = ?').get(username);
+        if (existingById) {
+          updateOnlineById.run(username, passwordHash, id);
+        } else if (existingByUsername) {
+          updateOnlineByUsername.run(id, passwordHash, username);
+        } else {
+          insertOnline.run(id, username, passwordHash);
+        }
+      }
     }
   }
 
