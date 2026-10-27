@@ -150,6 +150,26 @@ router.get('/pc-info', (req, res) => {
   }
 });
 
+// Membuka sesi bilik berikutnya setelah petugas memeriksa hasil pemilihan.
+// Password hanya dibaca dari environment server dan tidak pernah dikirim ke browser.
+router.post('/pc-unlock', (req, res) => {
+  try {
+    const { pc_id, password } = req.body || {};
+    const expected = process.env.LOCAL_NEXT_VOTER_PASSWORD;
+    if (!expected) return res.status(503).json({ success: false, message: 'Password pembuka sesi lokal belum dikonfigurasi di .env.' });
+    if (!pc_id || password !== expected) return res.status(401).json({ success: false, message: 'Password petugas salah.' });
+
+    const session = db.prepare(`SELECT id, session_status FROM pc_sessions WHERE pc_id = ? ORDER BY id DESC LIMIT 1`).get(pc_id);
+    if (!session || session.session_status !== 'completed') {
+      return res.status(409).json({ success: false, message: 'Sesi ini belum selesai atau sudah dibuka.' });
+    }
+    db.prepare("UPDATE pc_sessions SET session_status = 'ready', completed_at = NULL WHERE id = ?").run(session.id);
+    res.json({ success: true, message: 'Sesi pemilih berikutnya siap digunakan.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal membuka sesi pemilih berikutnya.' });
+  }
+});
+
 // POST /api/public/pc-start - Menandai sesi PC beralih ke 'in_progress' saat pemilih mulai berinteraksi
 router.post('/pc-start', (req, res) => {
   try {

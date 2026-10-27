@@ -83,9 +83,6 @@ router.post('/', (req, res) => {
       VALUES (?, 'local', ?, CURRENT_TIMESTAMP)
     `).run(candidate_id, pc_id);
 
-    // Sesi pemilih berikutnya siap otomatis; admin tidak perlu menyetujui/reset PC.
-    db.prepare(`INSERT INTO pc_sessions (pc_id, session_status) VALUES (?, 'ready')`).run(pc_id);
-
     return true;
   });
 

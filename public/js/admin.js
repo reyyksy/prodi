@@ -162,6 +162,11 @@
     },
 
     setupEvents() {
+      const btnRefreshStatistics = document.getElementById('btnRefreshStatistics');
+      if (btnRefreshStatistics) {
+        btnRefreshStatistics.addEventListener('click', () => this.refreshStatistics());
+      }
+
       // Dismiss Recovery Banner
       if (btnDismissRecoveryBanner) {
         btnDismissRecoveryBanner.addEventListener('click', () => {
@@ -532,6 +537,29 @@
           }
         }
       } catch (e) {}
+    },
+
+    async refreshStatistics() {
+      const button = document.getElementById('btnRefreshStatistics');
+      if (!button) return;
+      if (!confirm('Perbarui statistik sekarang dan mulai ulang hitung mundur 15 menit?')) return;
+      const original = button.innerHTML;
+      button.disabled = true;
+      button.textContent = 'Memperbarui...';
+      try {
+        const res = await fetch(`${API_BASE}/admin/statistics/refresh`, {
+          method: 'POST', credentials: 'include'
+        });
+        const result = await res.json();
+        if (!result.success) throw new Error(result.message || 'Gagal memperbarui statistik');
+        alert(result.message);
+        await this.loadStatistics();
+      } catch (e) {
+        alert(e.message || 'Gagal memperbarui statistik.');
+      } finally {
+        button.disabled = false;
+        button.innerHTML = original;
+      }
     },
 
     // 5. Settings

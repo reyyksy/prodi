@@ -42,19 +42,40 @@
 
   const mainVotingView = document.getElementById('mainVotingView');
   const successView = document.getElementById('successView');
+  const pcSetupOverlay = document.getElementById('pcSetupOverlay');
+  const pcUnlockOverlay = document.getElementById('pcUnlockOverlay');
+  const pcUnlockForm = document.getElementById('pcUnlockForm');
+  const pcUnlockPassword = document.getElementById('pcUnlockPassword');
+  const pcUnlockError = document.getElementById('pcUnlockError');
 
   let activeModalCandidateId = null;
 
   // Baca URL Param ?pc=
   const urlParams = new URLSearchParams(window.location.search);
   const pcParam = urlParams.get('pc');
+  const isLocalMode = window.location.port === '3000' || window.location.port === '';
 
   // Inisialisasi
   async function init() {
+    if (isLocalMode && !pcParam) {
+      if (pcSetupOverlay) pcSetupOverlay.style.display = 'flex';
+      return;
+    }
     await fetchElectionStatus();
     await fetchPcInfo();
+    if (currentSession && currentSession.session_status === 'completed') {
+      showUnlockScreen();
+      return;
+    }
     await fetchCandidates();
     startPollingStatus();
+  }
+
+  function showUnlockScreen() {
+    mainVotingView.style.display = 'none';
+    bottomBar.style.display = 'none';
+    successView.style.display = 'block';
+    if (pcUnlockOverlay) pcUnlockOverlay.style.display = 'flex';
   }
 
   // 1. Ambil status pemilihan
@@ -320,17 +341,7 @@
   function startPollingStatus() {
     setInterval(async () => {
       // Jika sudah di success view, periksa apakah sesi sudah di-reset admin
-      if (successView.style.display === 'block') {
-        try {
-          const url = pcParam ? `${API_BASE}/public/pc-info?pc=${pcParam}` : `${API_BASE}/public/pc-info`;
-          const res = await fetch(url);
-          const json = await res.json();
-          if (json.success && json.data.session && json.data.session.session_status === 'ready') {
-            // Admin telah menekan "Siapkan untuk pemilih berikutnya" -> Reload halaman kembali ke awal
-            window.location.reload();
-          }
-        } catch (e) {}
-      } else {
+      if (successView.style.display !== 'block') {
         fetchElectionStatus();
       }
     }, 4000);
@@ -338,4 +349,25 @@
 
   // Start app
   document.addEventListener('DOMContentLoaded', init);
+
+  if (pcUnlockForm) {
+    pcUnlockForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      pcUnlockError.textContent = '';
+      const submit = pcUnlockForm.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/public/pc-unlock`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pc_id: currentPc && currentPc.id, password: pcUnlockPassword.value })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        window.location.reload();
+      } catch (error) {
+        pcUnlockError.textContent = error.message || 'Password petugas salah.';
+        submit.disabled = false;
+      }
+    });
+  }
 })();

@@ -11,6 +11,7 @@
   const stackedBarContainer = document.getElementById('stackedBarContainer');
   const chartLegendContainer = document.getElementById('chartLegendContainer');
   const chartProportionSummary = document.getElementById('chartProportionSummary');
+  const pieCenterTotal = document.getElementById('pieCenterTotal');
   const systemStatusBanner = document.getElementById('systemStatusBanner');
   const systemStatusText = document.getElementById('systemStatusText');
   const systemStatusTime = document.getElementById('systemStatusTime');
@@ -96,7 +97,7 @@
       }
     }
 
-    // 1. Render Diagram Perbandingan Batang Horizontal Terpadu (Stacked Bar)
+    // 1. Render diagram lingkaran perbandingan suara gabungan
     renderStackedComparisonBar(data);
 
     // 2. Render Baris Kartu Paslon Vertikal dengan Progress Bar Individual
@@ -105,12 +106,9 @@
 
   function renderStackedComparisonBar(data) {
     const total = data.total_votes;
+    if (pieCenterTotal) pieCenterTotal.textContent = total;
     if (total === 0) {
-      stackedBarContainer.innerHTML = `
-        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 0.85rem; font-weight: 500;">
-          Belum ada suara masuk untuk digambarkan pada diagram
-        </div>
-      `;
+      stackedBarContainer.style.background = '#e2e8f0';
       chartProportionSummary.textContent = '0 Suara Masuk';
       chartLegendContainer.innerHTML = data.candidates.map((c, i) => {
         const color = CANDIDATE_COLORS[i % CANDIDATE_COLORS.length];
@@ -126,17 +124,16 @@
 
     chartProportionSummary.textContent = `Total ${total} Suara Sah`;
 
-    // Segmen batang stacked
-    stackedBarContainer.innerHTML = data.candidates.map((c, i) => {
+    // Segmen conic-gradient: satu diagram gabungan untuk seluruh paslon.
+    let cursor = 0;
+    const segments = data.candidates.map((c, i) => {
       const color = CANDIDATE_COLORS[i % CANDIDATE_COLORS.length];
       const pct = c.percentage;
-      if (pct <= 0) return '';
-      return `
-        <div class="stacked-segment" style="width: ${pct}%; background: ${color.bg};" title="Paslon ${c.ballot_number}: ${c.vote_count} Suara (${pct}%)">
-          ${pct >= 10 ? `No. ${c.ballot_number} (${pct}%)` : (pct >= 5 ? `${pct}%` : '')}
-        </div>
-      `;
-    }).join('');
+      const start = cursor;
+      cursor += pct;
+      return `${color.bg} ${start}% ${cursor}%`;
+    }).join(', ');
+    stackedBarContainer.style.background = `conic-gradient(${segments})`;
 
     // Legend
     chartLegendContainer.innerHTML = data.candidates.map((c, i) => {

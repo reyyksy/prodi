@@ -67,6 +67,29 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="pcSetupOverlay" style="display:none; z-index:1000;">
+    <div class="modal-card" style="max-width:520px; text-align:center;">
+      <h2>Pilih Identitas PC</h2>
+      <p style="color:#64748b; margin:1rem 0 1.5rem;">Pilih nomor PC ini agar pemantauan jumlah pemilih per PC tercatat dengan benar.</p>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;">
+        <a class="btn-primary" href="?pc=1">PC 1</a><a class="btn-primary" href="?pc=2">PC 2</a><a class="btn-primary" href="?pc=3">PC 3</a><a class="btn-primary" href="?pc=4">PC 4</a><a class="btn-primary" href="?pc=5">PC 5</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="pcUnlockOverlay" style="display:none; z-index:1001;">
+    <div class="modal-card" style="max-width:480px; text-align:center;">
+      <div class="success-icon-box" style="margin:0 auto 1rem;">✓</div>
+      <h2>Pemilihan Berhasil Dicatat</h2>
+      <p style="color:#64748b; margin:1rem 0;">Silakan laporkan kepada petugas. Untuk memulai pemilih berikutnya, refresh halaman ini lalu masukkan password petugas.</p>
+      <form id="pcUnlockForm">
+        <input id="pcUnlockPassword" type="password" required autocomplete="off" placeholder="Password petugas" class="form-control" style="margin-bottom:.75rem;">
+        <div id="pcUnlockError" style="color:#dc2626;min-height:1.4rem;margin-bottom:.5rem;"></div>
+        <button type="submit" class="btn-primary" style="width:100%;">Buka Sesi Pemilih Berikutnya</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Bottom Floating Confirmation Bar -->
   <footer class="bottom-confirmation-bar" id="bottomBar">
     <div class="confirmation-inner">

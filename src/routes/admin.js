@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
-const { db, dbPath, backupsDir, exportsDir } = require('../db');
+const { db, dbPath, backupsDir, exportsDir, snapshotPublicStats } = require('../db');
 const { requireAuth } = require('./authRoutes');
 const { hashPassword, verifyPassword } = require('../auth');
 const { generateElectionExcel } = require('../services/excelService');
@@ -25,6 +25,27 @@ function updateDevelopmentEnvPassword(password) {
 
 // Semua rute di bawah ini dilindungi requireAuth
 router.use(requireAuth);
+
+// Paksa snapshot statistik baru dari dashboard admin. Timestamp berikutnya
+// dibuat ulang oleh server, sehingga seluruh monitor menghitung mundur dari
+// waktu yang sama.
+router.post('/statistics/refresh', (req, res) => {
+  try {
+    const snapshot = snapshotPublicStats('admin_manual');
+    res.json({
+      success: true,
+      message: 'Statistik berhasil diperbarui. Hitung mundur 15 menit dimulai kembali.',
+      data: {
+        ...snapshot.stats,
+        last_updated: snapshot.last_updated,
+        next_update: snapshot.next_update,
+        server_time: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memperbarui statistik: ' + err.message });
+  }
+});
 
 // GET /api/admin/overview - Ringkasan Dashboard
 router.get('/overview', (req, res) => {
