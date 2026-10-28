@@ -167,6 +167,9 @@
         btnRefreshStatistics.addEventListener('click', () => this.refreshStatistics());
       }
 
+      const btnResetAllPc = document.getElementById('btnResetAllPc');
+      if (btnResetAllPc) btnResetAllPc.addEventListener('click', () => this.resetAllPc());
+
       // Dismiss Recovery Banner
       if (btnDismissRecoveryBanner) {
         btnDismissRecoveryBanner.addEventListener('click', () => {
@@ -435,6 +438,9 @@
                 🔗 Buka Layar Bilik PC #${p.pc_number}
               </a>
             </div>
+            <div class="pc-actions">
+              <button class="btn-prepare-pc cursor-pointer" onclick="window.adminApp.resetPc(${p.id})">Reset PC ini</button>
+            </div>
           </div>
         `;
       }).join('');
@@ -453,6 +459,26 @@
       } catch (e) {
         alert('Gagal menyiapkan PC: ' + e.message);
       }
+    },
+
+    async resetPc(pcId) {
+      if (!confirm('Reset PC ini agar siap untuk pemilih berikutnya? Suara yang sudah masuk tetap aman.')) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/pc-devices/${pcId}/reset`, { method: 'POST', credentials: 'include' });
+        const json = await res.json();
+        alert(json.message);
+        if (json.success) { this.loadPcMonitoring(); this.loadDashboard(); }
+      } catch (e) { alert('Gagal me-reset PC: ' + e.message); }
+    },
+
+    async resetAllPc() {
+      if (!confirm('Reset SEMUA PC agar siap untuk pemilih berikutnya? Suara yang sudah masuk tetap aman.')) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/pc-devices/reset-all`, { method: 'POST', credentials: 'include' });
+        const json = await res.json();
+        alert(json.message);
+        if (json.success) { this.loadPcMonitoring(); this.loadDashboard(); }
+      } catch (e) { alert('Gagal me-reset semua PC: ' + e.message); }
     },
 
     // 3. Candidates

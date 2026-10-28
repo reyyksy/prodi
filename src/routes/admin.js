@@ -177,6 +177,33 @@ router.post('/pc-devices/:id/prepare-next-voter', (req, res) => {
   }
 });
 
+router.post('/pc-devices/:id/reset', (req, res) => {
+  try {
+    const pc = db.prepare('SELECT id, pc_number, display_name FROM pc_devices WHERE id = ?').get(req.params.id);
+    if (!pc) return res.status(404).json({ success: false, message: 'Perangkat PC tidak ditemukan.' });
+    const session = db.prepare('SELECT id FROM pc_sessions WHERE pc_id = ? ORDER BY id DESC LIMIT 1').get(pc.id);
+    if (session) db.prepare("UPDATE pc_sessions SET session_status = 'ready', completed_at = NULL, reset_by_admin_id = ? WHERE id = ?").run(req.admin.id, session.id);
+    else db.prepare("INSERT INTO pc_sessions (pc_id, session_status, reset_by_admin_id) VALUES (?, 'ready', ?)").run(pc.id, req.admin.id);
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run('RESET_PC', `Reset ${pc.display_name} (PC #${pc.pc_number}) ke sesi pemilih berikutnya.`, req.admin.username, req.ip);
+    res.json({ success: true, message: `${pc.display_name} berhasil di-reset. Layar PC dapat di-refresh tanpa password.` });
+  } catch (err) { res.status(500).json({ success: false, message: 'Gagal me-reset PC: ' + err.message }); }
+});
+
+router.post('/pc-devices/reset-all', (req, res) => {
+  try {
+    const pcs = db.prepare('SELECT id, pc_number, display_name FROM pc_devices ORDER BY pc_number ASC').all();
+    db.transaction(() => {
+      for (const pc of pcs) {
+        const session = db.prepare('SELECT id FROM pc_sessions WHERE pc_id = ? ORDER BY id DESC LIMIT 1').get(pc.id);
+        if (session) db.prepare("UPDATE pc_sessions SET session_status = 'ready', completed_at = NULL, reset_by_admin_id = ? WHERE id = ?").run(req.admin.id, session.id);
+        else db.prepare("INSERT INTO pc_sessions (pc_id, session_status, reset_by_admin_id) VALUES (?, 'ready', ?)").run(pc.id, req.admin.id);
+      }
+      db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run('RESET_ALL_PC', `Reset seluruh PC (${pcs.length} perangkat) ke sesi pemilih berikutnya.`, req.admin.username, req.ip);
+    })();
+    res.json({ success: true, message: `Berhasil me-reset ${pcs.length} PC. Semua layar dapat di-refresh tanpa password.` });
+  } catch (err) { res.status(500).json({ success: false, message: 'Gagal me-reset semua PC: ' + err.message }); }
+});
+
 // GET /api/admin/candidates
 router.get('/candidates', (req, res) => {
   try {
