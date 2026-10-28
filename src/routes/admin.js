@@ -58,7 +58,7 @@ router.get('/overview', (req, res) => {
     // PC summaries
     const pcDevices = db.prepare(`
       SELECT p.id, p.pc_number, p.display_name, p.is_enabled,
-             (SELECT COUNT(*) FROM pc_sessions ps WHERE ps.pc_id = p.id AND ps.session_status = 'completed') as vote_count,
+             (SELECT COUNT(*) FROM votes v WHERE v.source = 'local' AND v.local_pc_id = p.id) as vote_count,
              s.session_status, s.started_at, s.completed_at
       FROM pc_devices p
       LEFT JOIN pc_sessions s ON s.id = (
@@ -96,7 +96,7 @@ router.get('/pc-devices', (req, res) => {
   try {
     const pcDevices = db.prepare(`
       SELECT p.id, p.pc_number, p.display_name, p.is_enabled,
-             (SELECT COUNT(*) FROM pc_sessions ps WHERE ps.pc_id = p.id AND ps.session_status = 'completed') as vote_count,
+             (SELECT COUNT(*) FROM votes v WHERE v.source = 'local' AND v.local_pc_id = p.id) as vote_count,
              COALESCE(s.session_status, 'ready') as session_status,
              s.started_at, s.completed_at
       FROM pc_devices p
