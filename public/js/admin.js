@@ -481,6 +481,15 @@
       } catch (e) { alert('Gagal me-reset semua PC: ' + e.message); }
     },
 
+    async refreshAllPc() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/pc-devices/refresh-all`, { method: 'POST', credentials: 'include' });
+        const json = await res.json();
+        alert(json.message);
+        if (json.success) this.loadPcMonitoring();
+      } catch (e) { alert('Gagal mengirim perintah refresh: ' + e.message); }
+    },
+
     // 3. Candidates
     async loadCandidates() {
       try {

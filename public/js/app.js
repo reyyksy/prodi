@@ -7,6 +7,7 @@
   let selectedCandidateId = null;
   let currentPc = null;
   let currentSession = null;
+  let refreshVersion = null;
   let electionStatus = 'draft';
 
   // DOM Elements
@@ -65,6 +66,7 @@
     await fetchPcInfo();
     if (currentSession && currentSession.session_status === 'completed') {
       showUnlockScreen();
+      startPollingStatus();
       return;
     }
     await fetchCandidates();
@@ -124,8 +126,18 @@
       const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
+        const nextRefreshVersion = json.data.refresh_version || '0';
+        const previousSessionStatus = currentSession && currentSession.session_status;
+        const sessionWasChanged = previousSessionStatus && previousSessionStatus !== json.data.session.session_status;
+        const refreshWasRequested = refreshVersion !== null && refreshVersion !== nextRefreshVersion;
         currentPc = json.data.pc;
         currentSession = json.data.session;
+        refreshVersion = nextRefreshVersion;
+
+        if (sessionWasChanged || refreshWasRequested) {
+          window.location.reload();
+          return;
+        }
 
         pcIdentifierLabel.textContent = currentPc ? currentPc.display_name : 'PC Klien';
 
@@ -341,9 +353,8 @@
   function startPollingStatus() {
     setInterval(async () => {
       // Jika sudah di success view, periksa apakah sesi sudah di-reset admin
-      if (successView.style.display !== 'block') {
-        fetchElectionStatus();
-      }
+      if (successView.style.display !== 'block') fetchElectionStatus();
+      fetchPcInfo();
     }, 4000);
   }
 

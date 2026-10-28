@@ -204,6 +204,19 @@ router.post('/pc-devices/reset-all', (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: 'Gagal me-reset semua PC: ' + err.message }); }
 });
 
+// Meminta seluruh client memuat ulang tanpa mengubah sesi atau suara.
+router.post('/pc-devices/refresh-all', (req, res) => {
+  try {
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_at) VALUES ('pc_refresh_version', ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    `).run(String(Date.now()));
+    res.json({ success: true, message: 'Perintah refresh telah dikirim ke semua PC.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mengirim perintah refresh: ' + err.message });
+  }
+});
+
 // GET /api/admin/candidates
 router.get('/candidates', (req, res) => {
   try {

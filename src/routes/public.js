@@ -137,12 +137,14 @@ router.get('/pc-info', (req, res) => {
       ORDER BY id DESC
       LIMIT 1
     `).get(pc.id);
+    const refreshVersion = db.prepare("SELECT value FROM settings WHERE key = 'pc_refresh_version'").get();
 
     res.json({
       success: true,
       data: {
         pc,
-        session: session || { session_status: 'ready' }
+        session: session || { session_status: 'ready' },
+        refresh_version: refreshVersion ? refreshVersion.value : '0'
       }
     });
   } catch (err) {
