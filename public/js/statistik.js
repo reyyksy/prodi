@@ -54,7 +54,8 @@
     statsTotalVotes.textContent = data.total_votes;
     const statusLabels = { open: '🟢 SERVER AKTIF — PEMILIHAN SEDANG BERJALAN', paused: '🟠 SERVER AKTIF — PEMILIHAN DIJEDA', draft: '⚪ SERVER AKTIF — PEMILIHAN BELUM DIMULAI', closed: '🔵 SERVER AKTIF — HASIL FINAL / PEMILIHAN DITUTUP' };
     systemStatusText.textContent = statusLabels[data.election_status] || 'SERVER AKTIF';
-    nextUpdateTimestamp = data.next_update ? new Date(data.next_update).getTime() : null;
+    const serverClockOffset = data.server_time ? new Date(data.server_time).getTime() - Date.now() : 0;
+    nextUpdateTimestamp = data.next_update ? new Date(data.next_update).getTime() - serverClockOffset : null;
     systemStatusTime.textContent = `Pembaruan data: ${data.next_update ? new Date(data.next_update).toLocaleTimeString('id-ID') : 'final'}`;
     systemStatusBanner.style.background = isClosed ? '#dcfce7' : (data.election_status === 'paused' ? '#fffbeb' : '#eef2ff');
     systemStatusBanner.style.color = isClosed ? '#166534' : (data.election_status === 'paused' ? '#92400e' : '#3730a3');

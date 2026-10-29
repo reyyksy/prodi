@@ -182,7 +182,7 @@ function snapshotPublicStats(triggerType = 'scheduled') {
   const stats = calculateCurrentStats();
   const now = new Date();
   const snapshotJson = JSON.stringify(stats);
-  const nextSnapshot = new Date(now.getTime() + 15 * 60 * 1000).toISOString();
+  const nextSnapshot = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
 
   const upsert = db.prepare(`
     INSERT INTO settings (key, value, updated_at)

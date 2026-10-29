@@ -46,7 +46,7 @@ router.get('/candidates', (req, res) => {
 });
 
 // GET /api/statistics
-// Sesuai revisi: Jika pemilihan sedang OPEN/PAUSED/DRAFT, data hasil perolehan diambil dari SNAPSHOT sistem berjangka (15 menit).
+// Jika pemilihan sedang OPEN/PAUSED/DRAFT, data hasil perolehan diambil dari snapshot sistem berjangka (5 menit).
 // Merefresh browser TIDAK mengubah data hasil sampai interval sistem tiba atau panitia menekan manual update.
 // Jika status CLOSED (final), otomatis menghasilkan data final terkini secara deterministik.
 router.get('/statistics', (req, res) => {

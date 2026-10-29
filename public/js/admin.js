@@ -577,7 +577,7 @@
     async refreshStatistics() {
       const button = document.getElementById('btnRefreshStatistics');
       if (!button) return;
-      if (!confirm('Perbarui statistik sekarang dan mulai ulang hitung mundur 15 menit?')) return;
+      if (!confirm('Perbarui statistik sekarang dan mulai ulang hitung mundur 5 menit untuk semua halaman?')) return;
       const original = button.innerHTML;
       button.disabled = true;
       button.textContent = 'Memperbarui...';

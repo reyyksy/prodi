@@ -34,7 +34,7 @@ router.post('/statistics/refresh', (req, res) => {
     const snapshot = snapshotPublicStats('admin_manual');
     res.json({
       success: true,
-      message: 'Statistik berhasil diperbarui. Hitung mundur 15 menit dimulai kembali.',
+      message: 'Statistik berhasil diperbarui. Hitung mundur 5 menit dimulai kembali.',
       data: {
         ...snapshot.stats,
         last_updated: snapshot.last_updated,
