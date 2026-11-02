@@ -357,13 +357,10 @@ async function initDatabase() {
     }
   }
 
-  // PC 1 - PC 5
-  const countPc = db.prepare('SELECT COUNT(*) as cnt FROM pc_devices').get()?.cnt || 0;
-  if (countPc === 0) {
-    const insertPc = db.prepare('INSERT INTO pc_devices (pc_number, display_name, configured_ip, is_enabled) VALUES (?, ?, ?, 1)');
-    for (let i = 1; i <= 5; i++) {
-      insertPc.run(i, `PC Pemilih ${i}`, `192.168.1.${10 + i}`);
-    }
+  // Pastikan PC Pemilih 1-7 tersedia, termasuk pada database lama yang awalnya hanya memiliki 5 PC.
+  const insertPc = db.prepare('INSERT OR IGNORE INTO pc_devices (pc_number, display_name, configured_ip, is_enabled) VALUES (?, ?, ?, 1)');
+  for (let i = 1; i <= 7; i++) {
+    insertPc.run(i, `PC Pemilih ${i}`, `192.168.1.${10 + i}`);
   }
 
   // Pastikan ada pc_sessions aktif

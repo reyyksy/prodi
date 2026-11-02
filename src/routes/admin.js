@@ -91,7 +91,7 @@ router.get('/overview', (req, res) => {
   }
 });
 
-// GET /api/admin/pc-devices - Daftar 5 PC Monitoring
+// GET /api/admin/pc-devices - Daftar 7 PC Monitoring
 router.get('/pc-devices', (req, res) => {
   try {
     const pcDevices = db.prepare(`
