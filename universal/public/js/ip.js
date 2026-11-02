@@ -1,0 +1,5 @@
+// Auto-generated target server configuration
+const SERVER_CONFIG = {
+  ip: "127.0.0.1",
+  port: 3000
+};

@@ -1,0 +1,555 @@
+const express = require('express');
+const router = express.Router();
+const path = require('path');
+const fs = require('fs');
+const { db, dbPath, backupsDir, exportsDir, snapshotPublicStats } = require('../db');
+const { requireAuth } = require('./authRoutes');
+const { hashPassword, verifyPassword } = require('../auth');
+const { generateElectionExcel } = require('../services/excelService');
+const defaultCandidates = require('../../config/paslon');
+const onlineRouter = require('./online');
+const resetOnlineSessions = onlineRouter.resetOnlineSessions;
+
+function updateDevelopmentEnvPassword(password) {
+  const envPath = path.resolve(__dirname, '../../.env');
+  if (!fs.existsSync(envPath)) return false;
+  const source = fs.readFileSync(envPath, 'utf8');
+  const line = `ADMIN_DEFAULT_PASS=${password}`;
+  const updated = /^ADMIN_DEFAULT_PASS=.*$/m.test(source)
+    ? source.replace(/^ADMIN_DEFAULT_PASS=.*$/m, line)
+    : `${source.replace(/\s*$/, '')}\n${line}\n`;
+  fs.writeFileSync(envPath, updated, 'utf8');
+  process.env.ADMIN_DEFAULT_PASS = password;
+  return true;
+}
+
+// Semua rute di bawah ini dilindungi requireAuth
+router.use(requireAuth);
+
+// Paksa snapshot statistik baru dari dashboard admin. Timestamp berikutnya
+// dibuat ulang oleh server, sehingga seluruh monitor menghitung mundur dari
+// waktu yang sama.
+router.post('/statistics/refresh', (req, res) => {
+  try {
+    const snapshot = snapshotPublicStats('admin_manual');
+    res.json({
+      success: true,
+      message: 'Statistik berhasil diperbarui. Hitung mundur 5 menit dimulai kembali.',
+      data: {
+        ...snapshot.stats,
+        last_updated: snapshot.last_updated,
+        next_update: snapshot.next_update,
+        server_time: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memperbarui statistik: ' + err.message });
+  }
+});
+
+// GET /api/admin/overview - Ringkasan Dashboard
+router.get('/overview', (req, res) => {
+  try {
+    const statusRow = db.prepare("SELECT value FROM settings WHERE key = 'election_status'").get();
+    const titleRow = db.prepare("SELECT value FROM settings WHERE key = 'election_title'").get();
+    const totalVotes = db.prepare('SELECT COUNT(*) as total FROM votes').get().total;
+    const totalCandidates = db.prepare('SELECT COUNT(*) as total FROM candidates WHERE is_active = 1').get().total;
+
+    // PC summaries
+    const pcDevices = db.prepare(`
+      SELECT p.id, p.pc_number, p.display_name, p.is_enabled,
+             (SELECT COUNT(*) FROM votes v WHERE v.source = 'local' AND v.local_pc_id = p.id) as vote_count,
+             s.session_status, s.started_at, s.completed_at
+      FROM pc_devices p
+      LEFT JOIN pc_sessions s ON s.id = (
+        SELECT id FROM pc_sessions WHERE pc_id = p.id ORDER BY id DESC LIMIT 1
+      )
+      ORDER BY p.pc_number ASC
+    `).all();
+
+    // Latest audit logs
+    const recentLogs = db.prepare(`
+      SELECT id, action, details, admin_username, ip_address, created_at
+      FROM audit_logs
+      ORDER BY id DESC
+      LIMIT 10
+    `).all();
+
+    res.json({
+      success: true,
+      data: {
+        election_status: statusRow ? statusRow.value : 'draft',
+        election_title: titleRow ? titleRow.value : '',
+        total_votes: totalVotes,
+        total_candidates: totalCandidates,
+        pc_devices: pcDevices,
+        recent_logs: recentLogs
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mengambil data overview: ' + err.message });
+  }
+});
+
+// GET /api/admin/pc-devices - Daftar 7 PC Monitoring
+router.get('/pc-devices', (req, res) => {
+  try {
+    const pcDevices = db.prepare(`
+      SELECT p.id, p.pc_number, p.display_name, p.is_enabled,
+             (SELECT COUNT(*) FROM votes v WHERE v.source = 'local' AND v.local_pc_id = p.id) as vote_count,
+             COALESCE(s.session_status, 'ready') as session_status,
+             s.started_at, s.completed_at
+      FROM pc_devices p
+      LEFT JOIN pc_sessions s ON s.id = (
+        SELECT id FROM pc_sessions WHERE pc_id = p.id ORDER BY id DESC LIMIT 1
+      )
+      ORDER BY p.pc_number ASC
+    `).all();
+
+    res.json({ success: true, data: pcDevices });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mengambil status PC' });
+  }
+});
+
+// GET /api/admin/online-overview - Rekap sumber suara dan status akun online
+router.get('/online-overview', (req, res) => {
+  try {
+    const total = db.prepare('SELECT COUNT(*) as total FROM votes').get().total;
+    const onlineVotes = db.prepare("SELECT COUNT(*) as total FROM votes WHERE source = 'online'").get().total;
+    const localVotes = total - onlineVotes;
+    const pcVotes = db.prepare(`SELECT p.pc_number, p.display_name, COUNT(v.id) as vote_count FROM pc_devices p LEFT JOIN votes v ON v.source = 'local' AND v.local_pc_id = p.id GROUP BY p.id ORDER BY p.pc_number`).all();
+    const clients = db.prepare('SELECT id, username, has_voted, voted_at FROM online_clients ORDER BY username COLLATE NOCASE ASC').all();
+    res.json({ success: true, data: { total_votes: total, local_votes: localVotes, online_votes: onlineVotes, pc_votes: pcVotes, online_clients: clients } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memuat rekap lokal dan online: ' + err.message });
+  }
+});
+
+// POST /api/admin/online/reset - Kembalikan seluruh akun online ke status belum memilih
+router.post('/online/reset', (req, res) => {
+  try {
+    const { password } = req.body || {};
+    const user = db.prepare('SELECT password_hash FROM admin_users WHERE id = ?').get(req.admin.id);
+    if (!password || !user || !verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ success: false, message: 'Password admin salah. Reset akun online dibatalkan.' });
+    }
+    db.prepare('UPDATE online_clients SET has_voted = 0, voted_at = NULL').run();
+    resetOnlineSessions();
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'RESET_ONLINE_CLIENTS', 'Seluruh akun online dikembalikan ke status belum memilih.', req.admin.username, req.ip
+    );
+    res.json({ success: true, message: 'Status seluruh akun online berhasil di-reset.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal me-reset akun online: ' + err.message });
+  }
+});
+
+// POST /api/admin/pc-devices/:id/prepare-next-voter
+// MUTLAK: Menyiapkan sesi berikutnya TIDAK BOLEH menghapus suara di tabel votes
+router.post('/pc-devices/:id/prepare-next-voter', (req, res) => {
+  try {
+    const pcId = req.params.id;
+    const pc = db.prepare('SELECT id, pc_number, display_name FROM pc_devices WHERE id = ?').get(pcId);
+    if (!pc) {
+      return res.status(404).json({ success: false, message: 'Perangkat PC tidak ditemukan' });
+    }
+
+    // Buat sesi baru berstatus 'ready'
+    db.prepare(`
+      INSERT INTO pc_sessions (pc_id, session_status, reset_by_admin_id)
+      VALUES (?, 'ready', ?)
+    `).run(pc.id, req.admin.id);
+
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'PREPARE_NEXT_VOTER',
+      `Menyiapkan pemilih berikutnya pada ${pc.display_name} (PC #${pc.pc_number})`,
+      req.admin.username,
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: `Berhasil menyiapkan ${pc.display_name} untuk pemilih selanjutnya.`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal menyiapkan PC: ' + err.message });
+  }
+});
+
+router.post('/pc-devices/:id/reset', (req, res) => {
+  try {
+    const pc = db.prepare('SELECT id, pc_number, display_name FROM pc_devices WHERE id = ?').get(req.params.id);
+    if (!pc) return res.status(404).json({ success: false, message: 'Perangkat PC tidak ditemukan.' });
+    const session = db.prepare('SELECT id FROM pc_sessions WHERE pc_id = ? ORDER BY id DESC LIMIT 1').get(pc.id);
+    if (session) db.prepare("UPDATE pc_sessions SET session_status = 'ready', completed_at = NULL, reset_by_admin_id = ? WHERE id = ?").run(req.admin.id, session.id);
+    else db.prepare("INSERT INTO pc_sessions (pc_id, session_status, reset_by_admin_id) VALUES (?, 'ready', ?)").run(pc.id, req.admin.id);
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run('RESET_PC', `Reset ${pc.display_name} (PC #${pc.pc_number}) ke sesi pemilih berikutnya.`, req.admin.username, req.ip);
+    res.json({ success: true, message: `${pc.display_name} berhasil di-reset. Layar PC dapat di-refresh tanpa password.` });
+  } catch (err) { res.status(500).json({ success: false, message: 'Gagal me-reset PC: ' + err.message }); }
+});
+
+router.post('/pc-devices/reset-all', (req, res) => {
+  try {
+    const pcs = db.prepare('SELECT id, pc_number, display_name FROM pc_devices ORDER BY pc_number ASC').all();
+    db.transaction(() => {
+      for (const pc of pcs) {
+        const session = db.prepare('SELECT id FROM pc_sessions WHERE pc_id = ? ORDER BY id DESC LIMIT 1').get(pc.id);
+        if (session) db.prepare("UPDATE pc_sessions SET session_status = 'ready', completed_at = NULL, reset_by_admin_id = ? WHERE id = ?").run(req.admin.id, session.id);
+        else db.prepare("INSERT INTO pc_sessions (pc_id, session_status, reset_by_admin_id) VALUES (?, 'ready', ?)").run(pc.id, req.admin.id);
+      }
+      db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run('RESET_ALL_PC', `Reset seluruh PC (${pcs.length} perangkat) ke sesi pemilih berikutnya.`, req.admin.username, req.ip);
+    })();
+    res.json({ success: true, message: `Berhasil me-reset ${pcs.length} PC. Semua layar dapat di-refresh tanpa password.` });
+  } catch (err) { res.status(500).json({ success: false, message: 'Gagal me-reset semua PC: ' + err.message }); }
+});
+
+// Meminta seluruh client memuat ulang tanpa mengubah sesi atau suara.
+router.post('/pc-devices/refresh-all', (req, res) => {
+  try {
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_at) VALUES ('pc_refresh_version', ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    `).run(String(Date.now()));
+    res.json({ success: true, message: 'Perintah refresh telah dikirim ke semua PC.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mengirim perintah refresh: ' + err.message });
+  }
+});
+
+// GET /api/admin/candidates
+router.get('/candidates', (req, res) => {
+  try {
+    const candidates = db.prepare('SELECT * FROM candidates ORDER BY ballot_number ASC').all();
+    const formatted = candidates.map(c => ({
+      ...c,
+      programs: JSON.parse(c.programs_json || '[]')
+    }));
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memuat kandidat' });
+  }
+});
+
+// Kontrol Pemilihan: Start, Pause, Stop, Reset
+// POST /api/admin/election/start
+router.post('/election/start', (req, res) => {
+  try {
+    db.prepare("UPDATE settings SET value = 'open', updated_at = CURRENT_TIMESTAMP WHERE key = 'election_status'").run();
+
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'ELECTION_START',
+      'Pemilihan dibuka / dimulai.',
+      req.admin.username,
+      req.ip
+    );
+
+    res.json({ success: true, message: 'Pemilihan berhasil DIBUKA.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/election/pause
+router.post('/election/pause', (req, res) => {
+  try {
+    db.prepare("UPDATE settings SET value = 'paused', updated_at = CURRENT_TIMESTAMP WHERE key = 'election_status'").run();
+
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'ELECTION_PAUSE',
+      'Pemilihan dihentikan sementara (DIJEDA).',
+      req.admin.username,
+      req.ip
+    );
+
+    res.json({ success: true, message: 'Pemilihan berhasil DIJEDA.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/election/stop (Tutup / Final) - Memerlukan konfirmasi password
+router.post('/election/stop', (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Konfirmasi password diperlukan untuk menutup pemilihan.' });
+    }
+
+    const user = db.prepare('SELECT password_hash FROM admin_users WHERE id = ?').get(req.admin.id);
+    if (!user || !verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ success: false, message: 'Password salah. Aksi penutupan dibatalkan.' });
+    }
+
+    db.prepare("UPDATE settings SET value = 'closed', updated_at = CURRENT_TIMESTAMP WHERE key = 'election_status'").run();
+
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'ELECTION_STOP',
+      'Pemilihan DITUTUP secara final oleh admin.',
+      req.admin.username,
+      req.ip
+    );
+
+    res.json({ success: true, message: 'Pemilihan telah DITUTUP secara final.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/election/reset - Backup otomatis, butuh verifikasi kata sandi + frasa konfirmasi
+router.post('/election/reset', async (req, res) => {
+  try {
+    const { password, confirmation_phrase } = req.body;
+
+    if (confirmation_phrase !== 'RESET-PEMILIHAN-TJKT') {
+      return res.status(400).json({
+        success: false,
+        message: 'Frasa konfirmasi salah. Harap ketik: RESET-PEMILIHAN-TJKT'
+      });
+    }
+
+    const user = db.prepare('SELECT password_hash FROM admin_users WHERE id = ?').get(req.admin.id);
+    if (!user || !verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ success: false, message: 'Password salah.' });
+    }
+
+    // Backup database otomatis sebelum reset
+    const backupFileName = `auto_backup_before_reset_${Date.now()}.sqlite`;
+    const backupFilePath = path.join(backupsDir, backupFileName);
+    await db.backup(backupFilePath);
+
+    // Lakukan Reset Transaksional
+    db.transaction(() => {
+      // Hapus seluruh suara
+      db.prepare('DELETE FROM votes').run();
+      db.prepare('UPDATE online_clients SET has_voted = 0, voted_at = NULL').run();
+      resetOnlineSessions();
+
+      // Kembalikan status ke draft
+      db.prepare("UPDATE settings SET value = 'draft', updated_at = CURRENT_TIMESTAMP WHERE key = 'election_status'").run();
+
+      // Buang snapshot lama agar statistik setelah reset kembali benar-benar nol.
+      db.prepare("DELETE FROM settings WHERE key IN ('public_stats_cache', 'public_stats_last_updated', 'public_stats_next_update')").run();
+
+      // Reset semua status sesi PC ke ready
+      const pcs = db.prepare('SELECT id FROM pc_devices').all();
+      for (const pc of pcs) {
+        db.prepare("INSERT INTO pc_sessions (pc_id, session_status, reset_by_admin_id) VALUES (?, 'ready', ?)").run(pc.id, req.admin.id);
+      }
+
+      // Catat log
+      db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+        'ELECTION_RESET',
+        `Sistem pemilihan di-reset ke status draft. Backup tersimpan di: ${backupFileName}`,
+        req.admin.username,
+        req.ip
+      );
+    })();
+
+    res.json({
+      success: true,
+      message: `Pemilihan berhasil di-reset. Data backup tersimpan di ${backupFileName}`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal melakukan reset: ' + err.message });
+  }
+});
+
+// GET /api/admin/settings & PATCH /api/admin/settings
+router.get('/settings', (req, res) => {
+  try {
+    const rows = db.prepare('SELECT key, value FROM settings').all();
+    const settings = {};
+    rows.forEach(r => { settings[r.key] = r.value; });
+    res.json({ success: true, data: settings });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memuat pengaturan' });
+  }
+});
+
+router.patch('/settings', (req, res) => {
+  try {
+    const { election_title, school_name, academic_year } = req.body;
+    const update = db.prepare('INSERT INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP');
+
+    if (election_title !== undefined) update.run('election_title', election_title);
+    if (school_name !== undefined) update.run('school_name', school_name);
+    if (academic_year !== undefined) update.run('academic_year', academic_year);
+
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'UPDATE_SETTINGS',
+      'Pengaturan identitas pemilihan diperbarui',
+      req.admin.username,
+      req.ip
+    );
+
+    res.json({ success: true, message: 'Pengaturan berhasil diperbarui.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal menyimpan pengaturan' });
+  }
+});
+
+// POST /api/admin/password - Ubah Password
+router.post('/password', (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password || new_password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password baru minimal harus 6 karakter.'
+      });
+    }
+
+    const user = db.prepare('SELECT password_hash FROM admin_users WHERE id = ?').get(req.admin.id);
+    if (!user || !verifyPassword(current_password, user.password_hash)) {
+      return res.status(401).json({ success: false, message: 'Password lama tidak sesuai.' });
+    }
+
+    const newHashed = hashPassword(new_password);
+    db.prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?').run(newHashed, req.admin.id);
+    const envUpdated = updateDevelopmentEnvPassword(new_password);
+
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'CHANGE_PASSWORD',
+      'Password akun admin berhasil diubah.',
+      req.admin.username,
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: envUpdated
+        ? 'Password berhasil diperbarui di database dan .env development.'
+        : 'Password berhasil diperbarui di database. File .env tidak ditemukan.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memperbarui password' });
+  }
+});
+
+// GET /api/admin/audit-logs
+router.get('/audit-logs', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const logs = db.prepare(`
+      SELECT id, action, details, admin_username, ip_address, created_at
+      FROM audit_logs
+      ORDER BY id DESC
+      LIMIT ?
+    `).all(limit);
+
+    res.json({ success: true, data: logs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memuat audit log' });
+  }
+});
+
+// BACKUP & RESTORE
+// POST /api/admin/backup
+router.post('/backup', (req, res) => {
+  try {
+    const filename = `manual_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.sqlite`;
+    const targetPath = path.join(backupsDir, filename);
+
+    // Backup sinkronus (sql.js export ke file)
+    db.backup(targetPath);
+
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'MANUAL_BACKUP',
+      `Backup manual dibuat: ${filename}`,
+      req.admin.username,
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: 'Backup database berhasil dibuat.',
+      filename
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal membuat backup: ' + err.message });
+  }
+});
+
+// GET /api/admin/backups
+router.get('/backups', (req, res) => {
+  try {
+    const files = fs.readdirSync(backupsDir)
+      .filter(f => f.endsWith('.sqlite'))
+      .map(f => {
+        const stats = fs.statSync(path.join(backupsDir, f));
+        return {
+          filename: f,
+          size: stats.size,
+          created_at: stats.mtime
+        };
+      })
+      .sort((a, b) => b.created_at - a.created_at);
+
+    res.json({ success: true, data: files });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal memuat daftar backup' });
+  }
+});
+
+// EKSPOR EXCEL (.xlsx)
+// POST /api/admin/exports/generate
+router.post('/exports/generate', async (req, res) => {
+  try {
+    const { filename, filePath } = await generateElectionExcel();
+
+    db.prepare('INSERT INTO audit_logs (action, details, admin_username, ip_address) VALUES (?, ?, ?, ?)').run(
+      'GENERATE_EXCEL',
+      `Laporan Excel hasil pemilihan digenerate: ${filename}`,
+      req.admin.username,
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: 'Laporan Excel berhasil dibuat.',
+      filename
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal membuat laporan Excel: ' + err.message });
+  }
+});
+
+// GET /api/admin/exports
+router.get('/exports', (req, res) => {
+  try {
+    const files = fs.readdirSync(exportsDir)
+      .filter(f => f.endsWith('.xlsx'))
+      .map(f => {
+        const stats = fs.statSync(path.join(exportsDir, f));
+        return {
+          filename: f,
+          size: stats.size,
+          created_at: stats.mtime
+        };
+      })
+      .sort((a, b) => b.created_at - a.created_at);
+
+    res.json({ success: true, data: files });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal membaca daftar ekspor' });
+  }
+});
+
+// GET /api/admin/exports/:filename/download
+router.get('/exports/:filename/download', (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const targetPath = path.join(exportsDir, filename);
+
+    if (!fs.existsSync(targetPath)) {
+      return res.status(404).send('File laporan tidak ditemukan.');
+    }
+
+    res.download(targetPath, filename);
+  } catch (err) {
+    res.status(500).send('Gagal mengunduh file.');
+  }
+});
+
+module.exports = router;

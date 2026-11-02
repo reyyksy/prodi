@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="id">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tutorial Prodi E-Voting</title><style>body{font:16px/1.6 system-ui,sans-serif;max-width:900px;margin:auto;padding:24px;color:#142b4a}code,pre{background:#eef4f5;border-radius:6px;padding:3px 6px}pre{padding:14px;overflow:auto}h1,h2{color:#0d6f73}section{border:1px solid #d6e2e5;border-radius:12px;padding:18px;margin:16px 0}</style></head>
+<body>
+<h1>Tutorial Prodi E-Voting</h1><p>Panduan ini sama dengan <a href="../index.html">panduan utama</a> dan README.</p>
+<section><h2>Windows PowerShell</h2><pre>git clone https://github.com/reyyksy/prodi.git
+Set-Location prodi
+npm install
+Rename-Item .env.example .env
+notepad .env
+npm run init-db
+npm start</pre></section>
+<section><h2>Linux</h2><pre>git clone https://github.com/reyyksy/prodi.git
+cd prodi
+npm install
+mv .env.example .env
+nano .env
+npm run init-db
+npm start</pre></section>
+<section><h2>macOS</h2><pre>git clone https://github.com/reyyksy/prodi.git
+cd prodi
+npm install
+mv .env.example .env
+nano .env
+npm run init-db
+npm start</pre></section>
+<section><h2>Konfigurasi dan akses</h2><p>Yang wajib diganti sebelum instalasi nyata: <code>SESSION_SECRET</code> (teks acak minimal 32 karakter), <code>ADMIN_DEFAULT_USER</code>, dan <code>ADMIN_DEFAULT_PASS</code>. <code>PORT</code> boleh tetap <code>3000</code> jika tidak bentrok.</p><pre>PORT=3000
+SESSION_SECRET=buat-teks-acak-minimal-32-karakter
+ADMIN_DEFAULT_USER=admin-baru
+ADMIN_DEFAULT_PASS=password-kuat-baru</pre><p>Clone development saat ini memakai login sementara <code>admin</code> / <code>admin12345</code>. Restart menyelaraskan password dari <code>.env</code> ke database. Form ganti password admin juga memperbarui <code>.env</code>. Clone release memakai <code>.env.example</code> sebagai template. Jangan commit atau membagikan <code>.env</code>.</p><p>Edit <code>config/site.js</code> untuk sekolah/logo dan <code>config/paslon.js</code> untuk calon. Buka pemilih di <code>http://localhost:3000/?pc=1</code> sampai <code>?pc=5</code>.</p></section>
+<section><h2>Cek server dari terminal</h2><p>Di folder development <code>/home/reihan/repo/me/prodi1/prodi</code>, jalankan <code>node --version</code>, <code>npm --version</code>, <code>npm run check</code>, <code>npm run init-db</code>, lalu <code>npm start</code>. Di terminal kedua jalankan <code>curl http://localhost:3000/api/health</code> dan <code>curl http://localhost:3000/api/public/election-status</code>. Health yang benar memuat <code>&quot;server_running&quot;:true</code>. PowerShell dapat memakai <code>Invoke-WebRequest http://localhost:3000/api/health</code>. Hentikan dengan <code>Ctrl+C</code>.</p></section>
+<section><h2>Mode online sementara</h2><p>Buka <code>http://localhost:3000/online/</code>. Di komputer server, salin <code>online/.env.example</code> menjadi <code>online/.env</code> dan isi lima akun client resmi. File <code>online/.env</code> hanya dibaca server. Frontend online memakai backend dan database yang sama, client dibatasi satu kali memilih, sedangkan pilihan suara tetap tidak disimpan bersama identitas client. Admin online tetap masuk melalui <code>/admin.html</code>.</p></section>
+<section><h2>Forward hanya port online</h2><p>Jalankan satu perintah <code>npm start</code>. Backend port 3000 dan frontend online port 4000 otomatis berjalan bersamaan. Forward port 4000 saja melalui VS Code. Buka halaman utama untuk client, <code>/admin.html</code> untuk admin, dan <code>/statistik.html</code> untuk monitoring. Port 4000 meneruskan API ke backend port 3000.</p></section>
+<section><h2>Development dan release untuk GitHub</h2><p>Perubahan dikerjakan di <code>/home/reihan/repo/me/prodi1/prodi</code>. Hasil final disiapkan di clone fresh <code>/home/reihan/repo/me/prodi</code>. Ulangi <code>npm install</code>, <code>npm run check</code>, <code>npm run init-db</code>, dan <code>npm start</code> di clone release sebelum commit dan push. Jangan menyalin <code>node_modules</code>, <code>data</code>, <code>backups</code>, <code>exports</code>, atau <code>.env</code>.</p></section>
+<section><h2>Konfigurasi pusat</h2><p>Gunakan satu file utama <code>config/paslon.js</code> untuk identitas sekolah, judul, logo, kandidat, visi, misi, dan proker. Setelah mengubahnya, jalankan <code>npm run init-db</code>.</p></section>
+</body></html>
