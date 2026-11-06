@@ -29,7 +29,6 @@
   const modalCandidateTitle = document.getElementById('modalCandidateTitle');
   const modalVisionText = document.getElementById('modalVisionText');
   const modalMissionText = document.getElementById('modalMissionText');
-  const modalProgramsList = document.getElementById('modalProgramsList');
 
   const confirmStage1Modal = document.getElementById('confirmStage1Modal');
   const confirmStage1BallotNum = document.getElementById('confirmStage1BallotNum');
@@ -197,7 +196,7 @@
                 <line x1="12" y1="16" x2="12" y2="12"></line>
                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
               </svg>
-              Lihat Visi, Misi & Proker
+              Lihat Visi & Misi
             </button>
             <button class="btn-select-candidate cursor-pointer" onclick="window.chooseCandidate(${c.id})">
               ${selectedCandidateId === c.id ? '✓ Paslon Terpilih' : 'Pilih Paslon Ini'}
@@ -249,17 +248,6 @@
     modalCandidateTitle.textContent = `Paslon No. ${c.ballot_number}: ${c.chair_name} & ${c.vice_name}`;
     modalVisionText.textContent = c.vision || '-';
     modalMissionText.textContent = c.mission || '-';
-
-    modalProgramsList.innerHTML = '';
-    if (c.programs && c.programs.length > 0) {
-      c.programs.forEach(p => {
-        const li = document.createElement('li');
-        li.textContent = p;
-        modalProgramsList.appendChild(li);
-      });
-    } else {
-      modalProgramsList.innerHTML = '<li>Belum ada program kerja tercatat.</li>';
-    }
 
     detailModal.classList.add('active');
   };
