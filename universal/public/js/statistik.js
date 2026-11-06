@@ -51,12 +51,13 @@
 
   function renderStatistics(data) {
     const isClosed = data.election_status === 'closed';
+    document.body.classList.toggle('stats-live-total-only', !isClosed);
     statsTotalVotes.textContent = data.total_votes;
     const statusLabels = { open: '🟢 SERVER AKTIF — PEMILIHAN SEDANG BERJALAN', paused: '🟠 SERVER AKTIF — PEMILIHAN DIJEDA', draft: '⚪ SERVER AKTIF — PEMILIHAN BELUM DIMULAI', closed: '🔵 SERVER AKTIF — HASIL FINAL / PEMILIHAN DITUTUP' };
     systemStatusText.textContent = statusLabels[data.election_status] || 'SERVER AKTIF';
     const serverClockOffset = data.server_time ? new Date(data.server_time).getTime() - Date.now() : 0;
     nextUpdateTimestamp = data.next_update ? new Date(data.next_update).getTime() - serverClockOffset : null;
-    systemStatusTime.textContent = `Pembaruan data: ${data.next_update ? new Date(data.next_update).toLocaleTimeString('id-ID') : 'final'}`;
+    systemStatusTime.textContent = isClosed ? 'Hasil final' : 'Total suara diperbarui langsung';
     systemStatusBanner.style.background = isClosed ? '#dcfce7' : (data.election_status === 'paused' ? '#fffbeb' : '#eef2ff');
     systemStatusBanner.style.color = isClosed ? '#166534' : (data.election_status === 'paused' ? '#92400e' : '#3730a3');
 
@@ -87,13 +88,13 @@
     } else {
       statsMainTitle.textContent = 'HASIL SEMENTARA PEMILIHAN';
       if (data.election_status === 'paused') {
-        statsSubtitle.textContent = 'Server hidup, tetapi pemilihan sedang dijeda oleh admin.';
+        statsSubtitle.textContent = 'Jumlah total suara diperbarui langsung. Rincian suara ditampilkan setelah pemilihan ditutup.';
         finalStatusAlert.style.display = 'block';
         finalStatusAlert.style.background = '#fffbeb';
         finalStatusAlert.style.color = '#b45309';
         finalStatusAlert.textContent = 'KONDISI: Pemilihan dijeda. Statistik belum final.';
       } else {
-        statsSubtitle.textContent = 'Data perolehan suara sementara dan anonim.';
+        statsSubtitle.textContent = 'Jumlah total suara diperbarui langsung. Rincian suara ditampilkan setelah pemilihan ditutup.';
         finalStatusAlert.style.display = 'none';
       }
     }
@@ -108,7 +109,7 @@
   function renderStackedComparisonBar(data) {
     const total = data.total_votes;
     if (pieCenterTotal) pieCenterTotal.textContent = total;
-    if (total === 0) {
+    if (total === 0 && data.election_status === 'closed') {
       stackedBarContainer.style.background = '#e2e8f0';
       chartProportionSummary.textContent = '0 Suara Masuk';
       chartLegendContainer.innerHTML = data.candidates.map((c, i) => {
@@ -127,9 +128,12 @@
 
     // Segmen conic-gradient: satu diagram gabungan untuk seluruh paslon.
     let cursor = 0;
+    const liveShare = data.election_status !== 'closed'
+      ? (data.candidates.length ? 100 / data.candidates.length : 0)
+      : null;
     const segments = data.candidates.map((c, i) => {
       const color = CANDIDATE_COLORS[i % CANDIDATE_COLORS.length];
-      const pct = c.percentage;
+      const pct = liveShare === null ? c.percentage : liveShare;
       const start = cursor;
       cursor += pct;
       return `${color.bg} ${start}% ${cursor}%`;
@@ -142,7 +146,7 @@
       return `
         <div class="legend-item">
           <span class="legend-color" style="background: ${color.bg};"></span>
-          <span><strong>No. ${c.ballot_number}:</strong> ${c.chair_name} & ${c.vice_name} (<strong>${c.vote_count}</strong> suara / <strong>${c.percentage}%</strong>)</span>
+          <span><strong>No. ${c.ballot_number}:</strong> ${c.chair_name} & ${c.vice_name}${liveShare === null ? ` (<strong>${c.vote_count}</strong> suara / <strong>${c.percentage}%</strong>)` : ''}</span>
         </div>
       `;
     }).join('');
@@ -199,7 +203,7 @@
   // menuju waktu yang sama dan refresh browser tidak mengatur ulang waktunya.
   setInterval(() => {
     if (!nextUpdateTimestamp) {
-      systemCountdown.textContent = 'FINAL';
+      systemCountdown.textContent = 'LIVE';
       return;
     }
     const remaining = Math.max(0, nextUpdateTimestamp - Date.now());

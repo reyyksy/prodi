@@ -269,7 +269,9 @@ async function initDatabase() {
       pc_number INTEGER UNIQUE NOT NULL,
       display_name TEXT NOT NULL,
       configured_ip TEXT,
-      is_enabled INTEGER DEFAULT 1
+      is_enabled INTEGER DEFAULT 1,
+      lab_number INTEGER DEFAULT 1,
+      lab_pc_number INTEGER DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS pc_sessions (
@@ -357,10 +359,25 @@ async function initDatabase() {
     }
   }
 
-  // Pastikan PC Pemilih 1-7 tersedia, termasuk pada database lama yang awalnya hanya memiliki 5 PC.
-  const insertPc = db.prepare('INSERT OR IGNORE INTO pc_devices (pc_number, display_name, configured_ip, is_enabled) VALUES (?, ?, ?, 1)');
-  for (let i = 1; i <= 7; i++) {
-    insertPc.run(i, `PC Pemilih ${i}`, `192.168.1.${10 + i}`);
+  // Migrasikan database lama: PC 1-7 dipertahankan sebagai Lab 1 PC 1-7.
+  const pcColumns = db.prepare('PRAGMA table_info(pc_devices)').all();
+  if (!pcColumns.some(column => column.name === 'lab_number')) {
+    db.prepare('ALTER TABLE pc_devices ADD COLUMN lab_number INTEGER DEFAULT 1').run();
+  }
+  if (!pcColumns.some(column => column.name === 'lab_pc_number')) {
+    db.prepare('ALTER TABLE pc_devices ADD COLUMN lab_pc_number INTEGER DEFAULT 1').run();
+  }
+
+  // Pastikan tersedia 4 lab dengan 30 PC per lab. pc_number tetap global untuk
+  // menjaga relasi suara lama melalui local_pc_id.
+  const insertPc = db.prepare('INSERT OR IGNORE INTO pc_devices (pc_number, display_name, configured_ip, is_enabled, lab_number, lab_pc_number) VALUES (?, ?, ?, 1, ?, ?)');
+  const updatePc = db.prepare('UPDATE pc_devices SET display_name = ?, lab_number = ?, lab_pc_number = ? WHERE pc_number = ?');
+  for (let lab = 1; lab <= 4; lab++) {
+    for (let pc = 1; pc <= 30; pc++) {
+      const globalPc = ((lab - 1) * 30) + pc;
+      insertPc.run(globalPc, `Lab ${lab} - PC ${pc}`, `192.168.${lab}.${10 + pc}`, lab, pc);
+      updatePc.run(`Lab ${lab} - PC ${pc}`, lab, pc, globalPc);
+    }
   }
 
   // Pastikan ada pc_sessions aktif

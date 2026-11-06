@@ -144,14 +144,15 @@
           tabPanes.forEach(p => p.classList.remove('active'));
 
           item.classList.add('active');
-          const activePane = document.getElementById(targetTab);
+          const paneTab = targetTab.startsWith('tabMonitoringLab') ? 'tabMonitoring' : targetTab;
+          const activePane = document.getElementById(paneTab);
           if (activePane) activePane.classList.add('active');
 
           currentTabTitle.textContent = item.textContent.trim();
 
           // Refresh per tab
           if (targetTab === 'tabDashboard') adminApp.loadDashboard();
-          if (targetTab === 'tabMonitoring') adminApp.loadPcMonitoring();
+          if (targetTab.startsWith('tabMonitoringLab')) adminApp.loadPcMonitoring(Number(targetTab.replace('tabMonitoringLab', '')));
           if (targetTab === 'tabCandidates') adminApp.loadCandidates();
           if (targetTab === 'tabStatistics') adminApp.loadStatistics();
           if (targetTab === 'tabSettings') adminApp.loadSettings();
@@ -406,21 +407,26 @@
     },
 
     // 2. Monitoring PC
-    async loadPcMonitoring() {
+    async loadPcMonitoring(lab = null) {
       try {
         const res = await fetch(`${API_BASE}/admin/pc-devices`, { credentials: 'include' });
         const json = await res.json();
         if (json.success) {
-          this.renderPcGrid(json.data, document.getElementById('monitoringPcGrid'));
+          this.renderPcGrid(json.data, document.getElementById('monitoringPcGrid'), lab);
         }
       } catch (e) {
         console.warn('PC Monitor error:', e);
       }
     },
 
-    renderPcGrid(pcs, container) {
+    renderPcGrid(pcs, container, selectedLab = null) {
       if (!container) return;
-      container.innerHTML = pcs.map(p => {
+      const labs = selectedLab ? [selectedLab] : [1, 2, 3, 4];
+      container.innerHTML = labs.map(lab => `
+        <section class="lab-monitoring-section" style="margin-bottom:2rem;">
+          <h3 style="color:var(--color-primary);margin-bottom:1rem;">Lab ${lab}</h3>
+          <div class="pc-monitoring-grid">
+          ${pcs.filter(p => Number(p.lab_number) === lab).map(p => {
         const st = p.session_status || 'ready';
         let label = 'Siap Memilih';
         if (st === 'in_progress') label = 'Sedang Memilih';
@@ -434,8 +440,8 @@
             </div>
             <div class="pc-ip-meta">
               Jumlah pemungutan dari PC ini: ${p.vote_count || 0}<br>
-              <a href="/index.html?pc=${p.pc_number}" target="_blank" style="color: var(--color-teal); text-decoration: none; font-size: 0.75rem;">
-                🔗 Buka Layar Bilik PC #${p.pc_number}
+              <a href="/index.html?lab=${p.lab_number}&pc=${p.lab_pc_number}" target="_blank" style="color: var(--color-teal); text-decoration: none; font-size: 0.75rem;">
+                🔗 Buka Layar Lab ${p.lab_number} - PC ${p.lab_pc_number}
               </a>
             </div>
             <div class="pc-actions">
@@ -443,7 +449,10 @@
             </div>
           </div>
         `;
-      }).join('');
+          }).join('')}
+          </div>
+        </section>
+      `).join('');
     },
 
     async preparePc(pcId) {
@@ -555,8 +564,11 @@
                 <div class="stat-metric-card"><div class="stat-metric-label">Total Lokal / PC</div><div class="stat-metric-value">${s.local_votes}</div></div>
                 <div class="stat-metric-card"><div class="stat-metric-label">Total Online</div><div class="stat-metric-value">${s.online_votes}</div></div>
               </div>
-              <h4 style="margin:1rem 0 .5rem">Jumlah Suara Lokal per PC</h4>
-              <div class="data-table-container"><table class="data-table"><thead><tr><th>PC</th><th>Jumlah Pemungutan</th></tr></thead><tbody>${s.pc_votes.map(p => `<tr><td>${p.display_name} (PC ${p.pc_number})</td><td>${p.vote_count}</td></tr>`).join('')}</tbody></table></div>
+              <h4 style="margin:1rem 0 .5rem">Jumlah Suara Lokal per Lab / PC</h4>
+              ${[1, 2, 3, 4].map(lab => `
+                <h5 style="margin:1rem 0 .4rem;color:var(--color-primary)">Lab ${lab}</h5>
+                <div class="data-table-container"><table class="data-table"><thead><tr><th>PC</th><th>Jumlah Pemungutan</th></tr></thead><tbody>${s.pc_votes.filter(p => Number(p.lab_number) === lab).map(p => `<tr><td>${p.display_name}</td><td>${p.vote_count}</td></tr>`).join('')}</tbody></table></div>
+              `).join('')}
               <div style="display:flex;justify-content:space-between;align-items:center;margin:1.5rem 0 .5rem;gap:1rem;flex-wrap:wrap"><h4>Status Akun Online</h4><button class="btn-danger cursor-pointer" id="btnResetOnlineClients" style="padding:.55rem .85rem">Reset Status Akun Online</button></div>
               <div class="data-table-container"><table class="data-table"><thead><tr><th>ID</th><th>Username</th><th>Status</th><th>Waktu</th></tr></thead><tbody>${s.online_clients.map(c => `<tr><td>${c.id}</td><td>${c.username}</td><td>${c.has_voted ? 'Sudah memilih' : 'Belum memilih'}</td><td>${c.voted_at ? new Date(c.voted_at).toLocaleString('id-ID') : '-'}</td></tr>`).join('')}</tbody></table></div>
             `;
@@ -679,7 +691,7 @@
       this.pollingInterval = setInterval(() => {
         const activeTab = document.querySelector('.nav-item.active')?.getAttribute('data-tab');
         if (activeTab === 'tabDashboard') this.loadDashboard();
-        if (activeTab === 'tabMonitoring') this.loadPcMonitoring();
+        if (activeTab?.startsWith('tabMonitoringLab')) this.loadPcMonitoring(Number(activeTab.replace('tabMonitoringLab', '')));
       }, 3000);
     }
   };

@@ -43,6 +43,9 @@
   const mainVotingView = document.getElementById('mainVotingView');
   const successView = document.getElementById('successView');
   const pcSetupOverlay = document.getElementById('pcSetupOverlay');
+  const labChoiceGrid = document.getElementById('labChoiceGrid');
+  const pcChoicePanel = document.getElementById('pcChoicePanel');
+  const pcChoiceGrid = document.getElementById('pcChoiceGrid');
   const pcUnlockOverlay = document.getElementById('pcUnlockOverlay');
   const pcUnlockForm = document.getElementById('pcUnlockForm');
   const pcUnlockPassword = document.getElementById('pcUnlockPassword');
@@ -52,12 +55,22 @@
 
   // Baca URL Param ?pc=
   const urlParams = new URLSearchParams(window.location.search);
+  const labParam = urlParams.get('lab');
   const pcParam = urlParams.get('pc');
   const isLocalMode = window.location.port === '3000' || window.location.port === '';
 
+  if (pcChoicePanel && pcChoiceGrid && labParam && !pcParam) {
+    if (labChoiceGrid) labChoiceGrid.style.display = 'none';
+    pcChoicePanel.style.display = 'block';
+    pcChoiceGrid.innerHTML = Array.from({ length: 30 }, (_, index) => {
+      const pc = index + 1;
+      return `<a class="btn-primary" href="?lab=${encodeURIComponent(labParam)}&pc=${pc}">PC ${pc}</a>`;
+    }).join('');
+  }
+
   // Inisialisasi
   async function init() {
-    if (isLocalMode && !pcParam) {
+    if (!labParam || !pcParam) {
       if (pcSetupOverlay) pcSetupOverlay.style.display = 'flex';
       return;
     }
@@ -121,7 +134,7 @@
   // 2. Ambil PC info dan Sesi
   async function fetchPcInfo() {
     try {
-      const url = pcParam ? `${API_BASE}/public/pc-info?pc=${pcParam}` : `${API_BASE}/public/pc-info`;
+      const url = (labParam && pcParam) ? `${API_BASE}/public/pc-info?lab=${labParam}&pc=${pcParam}` : `${API_BASE}/public/pc-info`;
       const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
@@ -133,7 +146,10 @@
         currentSession = json.data.session;
         refreshVersion = nextRefreshVersion;
 
-        if (sessionWasChanged || refreshWasRequested) {
+        const adminResetDetected = successView.style.display === 'block'
+          && previousSessionStatus === 'completed'
+          && json.data.session.session_status === 'ready';
+        if ((sessionWasChanged || refreshWasRequested) && (successView.style.display !== 'block' || adminResetDetected)) {
           window.location.reload();
           return;
         }
@@ -341,8 +357,14 @@
   function startPollingStatus() {
     setInterval(async () => {
       // Jika sudah di success view, periksa apakah sesi sudah di-reset admin
-      if (successView.style.display !== 'block') fetchElectionStatus();
-      fetchPcInfo();
+      if (successView.style.display !== 'block') {
+        fetchElectionStatus();
+        fetchPcInfo();
+      } else {
+        // Tetap memantau perubahan sesi agar reset dari halaman admin
+        // langsung membuka kembali bilik tanpa meminta password petugas.
+        fetchPcInfo();
+      }
     }, 4000);
   }
 

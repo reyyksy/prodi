@@ -71,8 +71,12 @@
     <div class="modal-card" style="max-width:520px; text-align:center;">
       <h2>Pilih Identitas PC</h2>
       <p style="color:#64748b; margin:1rem 0 1.5rem;">Pilih nomor PC ini agar pemantauan jumlah pemilih per PC tercatat dengan benar.</p>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;">
-        <a class="btn-primary" href="?pc=1">PC 1</a><a class="btn-primary" href="?pc=2">PC 2</a><a class="btn-primary" href="?pc=3">PC 3</a><a class="btn-primary" href="?pc=4">PC 4</a><a class="btn-primary" href="?pc=5">PC 5</a><a class="btn-primary" href="?pc=6">PC 6</a><a class="btn-primary" href="?pc=7">PC 7</a>
+      <div id="labChoiceGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;">
+        <a class="btn-primary" href="?lab=1">Lab 1</a><a class="btn-primary" href="?lab=2">Lab 2</a><a class="btn-primary" href="?lab=3">Lab 3</a><a class="btn-primary" href="?lab=4">Lab 4</a>
+      </div>
+      <div id="pcChoicePanel" style="display:none;margin-top:1.25rem;">
+        <h3 style="margin-bottom:.75rem;">Pilih Nomor PC</h3>
+        <div id="pcChoiceGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;"></div>
       </div>
     </div>
   </div>
@@ -192,6 +196,8 @@
       </div>
     </div>
   </div>
+
+  <footer class="site-copyright">Copyright @tjkt_smkyasbam · Created by Reihan</footer>
 
   <!-- Scripts -->
   <script src="js/ip.js"></script>

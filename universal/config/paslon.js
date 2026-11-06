@@ -1,5 +1,5 @@
 /**
- * Konfigurasi Pasangan Calon (Kandidat) Ketua & Wakil Ketua Prodi TJKT
+ * Konfigurasi Pasangan Calon (Kandidat) Ketua & Wakil Ketua OSIS
  * SMKS YASBAM KOTA BOGOR
  * File ini bersifat privat (backend only) dan diselaraskan ke database saat inisialisasi.
  */
@@ -7,53 +7,38 @@
 const candidates = [
   {
     ballot_number: 1,
-    chair_name: "Putri Aulia. S",
-    vice_name: "Muhammad Desqi Suherlan",
-    vision: "Menjadikan jurusan TKJ sebagai wadah bagi siswa untuk mengembangkan kompetensi, karakter, kreativitas, dan kesiapan menghadapi perkembangan teknologi serta dunia kerja.",
-    mission: "1. Meningkatkan pengalaman dan wawasan siswa tentang dunia industri.\n2. Meningkatkan pengalaman siswa melalui proyek nyata dan kegiatan teknologi.\n3. Mendorong siswa untuk berani mencoba, bertanya, dan berinovasi.",
-    programs: [
-      "Network Challenge: kompetisi tahunan membuat kabel FO terbaik untuk kelas 10.",
-      "Network Challenge: memecahkan masalah jaringan dengan Cisco Packet Tracer untuk kelas 12.",
-      "Network Challenge: menghitung IP secara lengkap dan tercepat untuk kelas 11."
-    ],
+    chair_name: "Tirta Ridho Khoerija",
+    vice_name: "Alifah Tun Julfirda",
+    vision: "Mewujudkan siswa/i yang disiplin, peduli, dan berintegritas serta mampu bekerja sama menciptakan lingkungan belajar yang sehat, bersih, dan berkarakter dan juga menjadikan OSIS sebagai wadah aspirasi yang efektif, tempat ide-ide siswa/i dapat diwujudkan.",
+    mission: "1. Menegaskan kerapihan serta kesopanan dalam berpakaian.\n2. Mengevaluasi hal-hal yang telah dilaksanakan agar menjadi lebih baik.\n3. Membangun OSIS yang profesional, responsif, dan dekat dengan kebutuhan siswa/i.\n4. Mengembangkan kegiatan kreatif-inovatif serta menginspirasi siswa dalam berprestasi di bidang akademik dan non-akademik.",
     photo_path: "/images/paslon-1.jpg"
   },
   {
     ballot_number: 2,
-    chair_name: "Fadlan Fauzan",
-    vice_name: "Annisa Nandita Putri",
-    vision: "Mewujudkan jurusan TKJ yang aktif, inovatif, dan menjadi wadah bagi seluruh siswa untuk berkembang dalam bidang teknologi, kreativitas, serta kerjasama dengan mengutamakan kekeluargaan dan aksi nyata yang berdampak positif untuk semua.",
-    mission: "1. Meningkatkan kekompakan dan rasa kebersamaan antar siswa TKJ.\n2. Mendorong siswa mengembangkan kemampuan teknologi dan jaringan komputer.\n3. Menyelenggarakan kegiatan edukatif, kreatif, dan bermanfaat.\n4. Membangun budaya saling membantu dan berbagi ilmu.\n5. Membuka ruang ide, aspirasi, dan kritik positif.\n6. Menjalankan organisasi dengan tanggung jawab dan semangat kerja tim.",
-    programs: [
-      "Kegiatan edukatif dan kreatif yang memperkuat kekompakan siswa TKJ.",
-      "Forum aspirasi dan berbagi ilmu antar siswa TKJ.",
-      "Kolaborasi teknologi dan jaringan komputer dengan aksi nyata."
-    ],
+    chair_name: "Yudis",
+    vice_name: "Tenyaho",
+    vision: "Mewujudkan siswa/i SMK Yasbam yang dapat mengedepankan keimanan dan ketakwaan, serta menampung aspirasi dan kreativitas siswa/i SMK Yasbam dalam mengedepankan prestasi akademik maupun non-akademik.",
+    mission: "1. Mewujudkan siswa/i SMK Yasbam yang bertakwa kepada Tuhan Yang Maha Esa.\n2. Meningkatkan kedisiplinan dan kesadaran siswa/i SMK Yasbam dalam menaati peraturan-peraturan yang berlaku.\n3. Mewujudkan siswa/i SMK Yasbam yang pandai bersosialisasi dengan baik di mana pun.\n4. Mewujudkan siswa/i SMK Yasbam yang berbudaya cinta lingkungan.\n5. Mengasah keterampilan siswa/i SMK Yasbam dalam bidang kesenian dan keolahragaan.\n6. Meningkatkan mutu prestasi akademik maupun non-akademik para siswa/i SMK Yasbam.",
     photo_path: "/images/paslon-2.jpg"
   },
   {
     ballot_number: 3,
-    chair_name: "R. Muhammad Duyeh",
-    vice_name: "Muhammad Akhtar Rangkuti",
-    vision: "Melanjutkan program-program yang sudah berjalan baik selama ini dan memperbaiki serta meningkatkan fasilitas TJKT untuk kenyamanan belajar dan memaksimalkan kemampuan siswa-siswi.",
-    mission: "1. Layanan pinjaman kabel RJ45 (LAN) dan perapihan router atau alat praktik di setiap lab TJKT.\n2. Layanan konsultasi untuk bimbingan belajar bersama dan keluhan fasilitas TJKT.\n3. Melanjutkan bisnis TJKT.",
-    programs: [
-      "Layanan pinjaman kabel RJ45 dan perapihan alat praktik di lab TJKT.",
-      "Layanan konsultasi bimbingan belajar dan fasilitas TJKT.",
-      "Melanjutkan bisnis TJKT."
-    ],
+    chair_name: "Muhamad Fhatir",
+    vice_name: "Anwar",
+    vision: "Mewujudkan OSIS SMK Yasbam Kota Bogor yang aktif, kreatif, dan inspiratif melalui 3M (Mampu Melaksanakan, Mampu Mewujudkan, dan Mampu Meneladani).",
+    mission: "1. Meningkatkan kerja sama antara OSIS dan prodi dalam menciptakan lingkungan sekolah yang nyaman dan menyenangkan bagi siswa/i di sekolah.\n2. Menanamkan nilai-nilai kebersamaan, solidaritas, dan kepedulian terhadap sesama warga sekolah.\n3. Menumbuhkan sikap disiplin, bertanggung jawab, dan peduli, serta membangun pengurus OSIS yang dapat menjadi teladan bagi siswa lainnya.\n4. Meningkatkan kreativitas dan inovasi dalam berbagai kegiatan OSIS untuk mewujudkan sekolah yang lebih maju dan berprestasi.",
     photo_path: "/images/paslon-3.jpg"
   }
 ];
 
 // KONFIGURASI UTAMA APLIKASI
 // Edit file ini untuk mengganti sekolah, judul, tahun, kandidat, visi, misi,
-// program kerja, dan foto. Semua halaman membaca data melalui konfigurasi ini.
+// dan foto. Semua halaman membaca data melalui konfigurasi ini.
 candidates.siteConfig = {
   schoolName: 'SMKS YASBAM KOTA BOGOR',
-  programName: 'Program Keahlian TJKT',
+  programName: 'OSIS SMKS YASBAM',
   academicYear: '2026/2027',
-  electionTitle: 'Pemilihan Ketua & Wakil Ketua Program Keahlian TJKT',
+  electionTitle: 'Pemilihan Ketua & Wakil Ketua OSIS',
   schoolLogo: '/images/yasbam.jpg',
   programLogo: '/images/tjkt.jpg',
   theme: { primary: '#142B4A', teal: '#0D9488' }

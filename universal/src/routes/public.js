@@ -46,9 +46,8 @@ router.get('/candidates', (req, res) => {
 });
 
 // GET /api/statistics
-// Jika pemilihan sedang OPEN/PAUSED/DRAFT, data hasil perolehan diambil dari snapshot sistem berjangka (5 menit).
-// Merefresh browser TIDAK mengubah data hasil sampai interval sistem tiba atau panitia menekan manual update.
-// Jika status CLOSED (final), otomatis menghasilkan data final terkini secara deterministik.
+// Saat pemilihan belum ditutup, publik hanya melihat total suara real-time.
+// Rincian per paslon baru dibuka setelah status CLOSED.
 router.get('/statistics', (req, res) => {
   try {
     const statusRow = db.prepare("SELECT value FROM settings WHERE key = 'election_status'").get();
@@ -68,20 +67,20 @@ router.get('/statistics', (req, res) => {
       lastUpdated = new Date().toISOString();
       nextUpdate = null;
     } else {
-      const now = Date.now();
-      const cacheNext = nextUpdateRow ? new Date(nextUpdateRow.value).getTime() : 0;
-      if (!cacheRow || !lastUpdatedRow || !cacheNext || now >= cacheNext) {
-        const snapshot = snapshotPublicStats('scheduled');
-        statsData = snapshot.stats;
-        lastUpdated = snapshot.last_updated;
-        nextUpdate = snapshot.next_update;
-      } else {
-        statsData = JSON.parse(cacheRow.value);
-        lastUpdated = lastUpdatedRow.value;
-        nextUpdate = nextUpdateRow.value;
-      }
-      // Status operasional harus selalu real-time meskipun jumlah suara masih snapshot.
-      statsData = { ...statsData, election_status: currentStatus };
+      const totalVotes = db.prepare('SELECT COUNT(*) as total FROM votes').get().total;
+      const candidates = db.prepare(`
+        SELECT id, ballot_number, chair_name, vice_name, photo_path
+        FROM candidates WHERE is_active = 1 ORDER BY ballot_number ASC
+      `).all().map(c => ({ ...c, vote_count: 0, percentage: 0 }));
+      statsData = {
+        election_status: currentStatus,
+        total_votes: totalVotes,
+        candidates,
+        result_status: 'in_progress',
+        winner_candidate_ids: []
+      };
+      lastUpdated = new Date().toISOString();
+      nextUpdate = null;
     }
 
     res.json({
@@ -121,13 +120,14 @@ router.post('/statistics/refresh', (req, res) => {
 // GET /api/public/pc-info - Mendeteksi identitas PC pemilih berdasarkan query pc_number atau IP
 router.get('/pc-info', (req, res) => {
   try {
-    const pcNum = req.query.pc ? parseInt(req.query.pc, 10) : null;
+    const labNum = req.query.lab ? parseInt(req.query.lab, 10) : null;
+    const labPcNum = req.query.pc ? parseInt(req.query.pc, 10) : null;
     let pc = null;
-    if (pcNum) {
-      pc = db.prepare('SELECT id, pc_number, display_name, is_enabled FROM pc_devices WHERE pc_number = ?').get(pcNum);
+    if (labNum && labPcNum) {
+      pc = db.prepare('SELECT id, pc_number, lab_number, lab_pc_number, display_name, is_enabled FROM pc_devices WHERE lab_number = ? AND lab_pc_number = ?').get(labNum, labPcNum);
     }
     if (!pc) {
-      pc = db.prepare('SELECT id, pc_number, display_name, is_enabled FROM pc_devices ORDER BY id ASC LIMIT 1').get();
+      pc = db.prepare('SELECT id, pc_number, lab_number, lab_pc_number, display_name, is_enabled FROM pc_devices ORDER BY lab_number, lab_pc_number LIMIT 1').get();
     }
 
     const session = db.prepare(`

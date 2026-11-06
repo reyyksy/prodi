@@ -8,6 +8,8 @@
   background: #f8fafc;
 }
 
+.admin-layout + .site-copyright { z-index: 1200; }
+
 /* Sidebar */
 .admin-sidebar {
   width: 260px;

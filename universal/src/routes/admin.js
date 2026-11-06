@@ -57,14 +57,14 @@ router.get('/overview', (req, res) => {
 
     // PC summaries
     const pcDevices = db.prepare(`
-      SELECT p.id, p.pc_number, p.display_name, p.is_enabled,
+      SELECT p.id, p.pc_number, p.lab_number, p.lab_pc_number, p.display_name, p.is_enabled,
              (SELECT COUNT(*) FROM votes v WHERE v.source = 'local' AND v.local_pc_id = p.id) as vote_count,
              s.session_status, s.started_at, s.completed_at
       FROM pc_devices p
       LEFT JOIN pc_sessions s ON s.id = (
         SELECT id FROM pc_sessions WHERE pc_id = p.id ORDER BY id DESC LIMIT 1
       )
-      ORDER BY p.pc_number ASC
+      ORDER BY p.lab_number ASC, p.lab_pc_number ASC
     `).all();
 
     // Latest audit logs
@@ -91,11 +91,11 @@ router.get('/overview', (req, res) => {
   }
 });
 
-// GET /api/admin/pc-devices - Daftar 7 PC Monitoring
+// GET /api/admin/pc-devices - Daftar PC Monitoring per lab
 router.get('/pc-devices', (req, res) => {
   try {
     const pcDevices = db.prepare(`
-      SELECT p.id, p.pc_number, p.display_name, p.is_enabled,
+      SELECT p.id, p.pc_number, p.lab_number, p.lab_pc_number, p.display_name, p.is_enabled,
              (SELECT COUNT(*) FROM votes v WHERE v.source = 'local' AND v.local_pc_id = p.id) as vote_count,
              COALESCE(s.session_status, 'ready') as session_status,
              s.started_at, s.completed_at
@@ -103,7 +103,7 @@ router.get('/pc-devices', (req, res) => {
       LEFT JOIN pc_sessions s ON s.id = (
         SELECT id FROM pc_sessions WHERE pc_id = p.id ORDER BY id DESC LIMIT 1
       )
-      ORDER BY p.pc_number ASC
+      ORDER BY p.lab_number ASC, p.lab_pc_number ASC
     `).all();
 
     res.json({ success: true, data: pcDevices });
@@ -118,7 +118,7 @@ router.get('/online-overview', (req, res) => {
     const total = db.prepare('SELECT COUNT(*) as total FROM votes').get().total;
     const onlineVotes = db.prepare("SELECT COUNT(*) as total FROM votes WHERE source = 'online'").get().total;
     const localVotes = total - onlineVotes;
-    const pcVotes = db.prepare(`SELECT p.pc_number, p.display_name, COUNT(v.id) as vote_count FROM pc_devices p LEFT JOIN votes v ON v.source = 'local' AND v.local_pc_id = p.id GROUP BY p.id ORDER BY p.pc_number`).all();
+    const pcVotes = db.prepare(`SELECT p.pc_number, p.lab_number, p.lab_pc_number, p.display_name, COUNT(v.id) as vote_count FROM pc_devices p LEFT JOIN votes v ON v.source = 'local' AND v.local_pc_id = p.id GROUP BY p.id ORDER BY p.lab_number, p.lab_pc_number`).all();
     const clients = db.prepare('SELECT id, username, has_voted, voted_at FROM online_clients ORDER BY username COLLATE NOCASE ASC').all();
     res.json({ success: true, data: { total_votes: total, local_votes: localVotes, online_votes: onlineVotes, pc_votes: pcVotes, online_clients: clients } });
   } catch (err) {

@@ -56,6 +56,26 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-bottom: 42px;
+}
+
+.site-copyright {
+  position: fixed;
+  z-index: 1100;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .45rem 1rem;
+  background: #ffffff;
+  color: var(--color-primary);
+  border-top: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  font-size: .75rem;
+  text-align: center;
 }
 
 /* Accessibility & Interactive */
@@ -364,7 +384,7 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 /* Floating Confirmation Bottom Bar */
 .bottom-confirmation-bar {
   position: fixed;
-  bottom: 0;
+  bottom: 36px;
   left: 0;
   right: 0;
   background: rgba(255, 255, 255, 0.96);

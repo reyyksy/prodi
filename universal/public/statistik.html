@@ -11,6 +11,8 @@
   <style>
     html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; }
     .stats-page { min-height: 100vh; }
+    .stats-page > .app-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+    .stats-page > .main-content { padding-top: 7rem; }
     .stats-results-layout { display: grid; grid-template-columns: minmax(280px, .85fr) minmax(0, 1.35fr); gap: 1.25rem; align-items: stretch; }
     .stats-results-layout .overall-chart-card { height: 100%; box-sizing: border-box; }
     .stats-candidates { display: flex; flex-direction: column; gap: 1rem; height: 100%; }
@@ -18,6 +20,8 @@
     .stats-candidates .stat-photo { width: 70px; height: 70px; }
     .stats-candidates .stat-names { font-size: 1rem; overflow-wrap: anywhere; }
     .stats-candidates .winner-crown-badge { top: .65rem; right: .65rem; font-size: .65rem; }
+    .stats-live-total-only .stats-candidates .stat-bar-wrapper,
+    .stats-live-total-only .stats-candidates .stat-numbers { display: none; }
     @media (max-width: 900px) { .stats-results-layout { grid-template-columns: 1fr; } .stats-results-layout .overall-chart-card { height: auto; } .stats-candidates { height: auto; } .stats-candidates .candidate-stat-row { flex: none; } }
     .stats-container {
       width: calc(100% - 2rem);
@@ -316,7 +320,7 @@
           </p>
           <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;" id="timerContainer">
             <span style="font-size: 0.75rem; color: #64748b;" id="lastUpdatedLabel">Update Terakhir: -</span>
-            <span class="system-interval-info">Pembaruan otomatis setiap 5 menit</span>
+            <span class="system-interval-info">Total suara diperbarui langsung</span>
           </div>
         </div>
         <div class="total-counter-box">
@@ -358,6 +362,8 @@
       </div>
     </div>
   </main>
+
+  <footer class="site-copyright">Copyright @tjkt_smkyasbam · Created by Reihan</footer>
 
   <script src="js/ip.js"></script>
   <script src="js/statistik.js"></script>
