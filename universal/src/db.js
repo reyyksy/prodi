@@ -298,10 +298,16 @@ async function initDatabase() {
       id TEXT PRIMARY KEY,
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      class_name TEXT,
+      major TEXT,
       has_voted INTEGER DEFAULT 0,
       voted_at DATETIME
     );
   `);
+
+  const onlineColumns = db.prepare('PRAGMA table_info(online_clients)').all();
+  if (!onlineColumns.some(column => column.name === 'class_name')) db.prepare('ALTER TABLE online_clients ADD COLUMN class_name TEXT').run();
+  if (!onlineColumns.some(column => column.name === 'major')) db.prepare('ALTER TABLE online_clients ADD COLUMN major TEXT').run();
 
   // Migrasi database lama: suara lama dianggap berasal dari bilik lokal.
   const voteColumns = db.prepare('PRAGMA table_info(votes)').all();
@@ -337,23 +343,25 @@ async function initDatabase() {
   if (fs.existsSync(onlineEnvPath)) {
     const dotenv = require('dotenv');
     const onlineEnv = dotenv.parse(fs.readFileSync(onlineEnvPath));
-    const insertOnline = db.prepare('INSERT INTO online_clients (id, username, password_hash) VALUES (?, ?, ?)');
-    const updateOnlineById = db.prepare('UPDATE online_clients SET username = ?, password_hash = ? WHERE id = ?');
-    const updateOnlineByUsername = db.prepare('UPDATE online_clients SET id = ?, password_hash = ? WHERE username = ?');
+    const insertOnline = db.prepare('INSERT INTO online_clients (id, username, password_hash, class_name, major) VALUES (?, ?, ?, ?, ?)');
+    const updateOnlineById = db.prepare('UPDATE online_clients SET username = ?, password_hash = ?, class_name = ?, major = ? WHERE id = ?');
+    const updateOnlineByUsername = db.prepare('UPDATE online_clients SET id = ?, password_hash = ?, class_name = ?, major = ? WHERE username = ?');
     for (let i = 1; i <= 100; i++) {
       const id = onlineEnv[`CLIENT_${i}_ID`];
       const username = onlineEnv[`CLIENT_${i}_USERNAME`];
       const password = onlineEnv[`CLIENT_${i}_PASSWORD`];
+      const className = onlineEnv[`CLIENT_${i}_CLASS`] || onlineEnv[`CLIENT_${i}_KELAS`] || '';
+      const major = onlineEnv[`CLIENT_${i}_MAJOR`] || onlineEnv[`CLIENT_${i}_JURUSAN`] || '';
       if (id && username && password) {
         const passwordHash = hashPassword(password);
         const existingById = db.prepare('SELECT id FROM online_clients WHERE id = ?').get(id);
         const existingByUsername = db.prepare('SELECT id FROM online_clients WHERE username = ?').get(username);
         if (existingById) {
-          updateOnlineById.run(username, passwordHash, id);
+          updateOnlineById.run(username, passwordHash, className, major, id);
         } else if (existingByUsername) {
-          updateOnlineByUsername.run(id, passwordHash, username);
+          updateOnlineByUsername.run(id, passwordHash, className, major, username);
         } else {
-          insertOnline.run(id, username, passwordHash);
+          insertOnline.run(id, username, passwordHash, className, major);
         }
       }
     }

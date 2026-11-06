@@ -70,7 +70,7 @@
 
   // Inisialisasi
   async function init() {
-    if (!labParam || !pcParam) {
+    if (isLocalMode && (!labParam || !pcParam)) {
       if (pcSetupOverlay) pcSetupOverlay.style.display = 'flex';
       return;
     }

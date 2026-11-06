@@ -16,10 +16,7 @@ function serveFile(res, filePath) {
 }
 
 function serveOnlineVoter(res) {
-  const filePath = path.join(publicDir, 'index.html');
-  const html = fs.readFileSync(filePath, 'utf8').replace('</body>', '<script src="/online-voter.js"></script></body>');
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end(html);
+  return serveFile(res, path.join(onlineDir, 'index.html'));
 }
 
 function proxyApi(req, res) {
@@ -37,7 +34,6 @@ const server = http.createServer((req, res) => {
   if (req.url === '/admin.html') return serveFile(res, path.join(publicDir, 'admin.html'));
   if (req.url === '/statistik.html') return serveFile(res, path.join(publicDir, 'statistik.html'));
   if (req.url === '/online/online.js') return serveFile(res, path.join(onlineDir, 'online.js'));
-  if (req.url === '/online-voter.js') return serveFile(res, path.join(onlineDir, 'online-voter.js'));
   if (req.url.startsWith('/tutorial/')) return serveFile(res, path.join(rootDir, req.url));
   if (req.url.startsWith('/css/') || req.url.startsWith('/js/') || req.url.startsWith('/images/')) return serveFile(res, path.join(publicDir, req.url));
   res.writeHead(404); res.end('Not found');

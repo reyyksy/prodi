@@ -6,6 +6,26 @@ const { verifyPassword } = require('../auth');
 const router = express.Router();
 const activeSessions = new Map();
 
+router.get('/clients/search', (req, res) => {
+  try {
+    const major = String(req.query.major || '').trim();
+    const className = String(req.query.class_name || '').trim();
+    const query = String(req.query.q || '').trim();
+    if (!major || !className || query.length < 1) return res.json({ success: true, data: [] });
+    const clients = db.prepare(`
+      SELECT id, username, class_name, major
+      FROM online_clients
+      WHERE LOWER(major) = LOWER(?) AND LOWER(class_name) = LOWER(?)
+        AND (LOWER(username) LIKE LOWER(?) OR LOWER(id) LIKE LOWER(?))
+        AND has_voted = 0
+      ORDER BY username COLLATE NOCASE ASC LIMIT 20
+    `).all(major, className, `%${query}%`, `%${query}%`);
+    res.json({ success: true, data: clients });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Gagal mencari akun pemilih.' });
+  }
+});
+
 function resetOnlineSessions() {
   activeSessions.clear();
 }
@@ -13,7 +33,7 @@ function resetOnlineSessions() {
 router.post('/login', (req, res) => {
   const { identifier, username, password } = req.body || {};
   const loginName = String(identifier || username || '').trim();
-  const client = db.prepare('SELECT id, username, password_hash, has_voted FROM online_clients WHERE LOWER(username) = LOWER(?) OR id = ?').get(loginName, loginName);
+  const client = db.prepare('SELECT id, username, password_hash, class_name, major, has_voted FROM online_clients WHERE LOWER(username) = LOWER(?) OR id = ?').get(loginName, loginName);
   if (!client || !verifyPassword(password || '', client.password_hash)) {
     return res.status(401).json({ success: false, message: 'ID, username, atau password salah.' });
   }
@@ -22,7 +42,7 @@ router.post('/login', (req, res) => {
   }
   const token = crypto.randomBytes(32).toString('hex');
   activeSessions.set(token, client.id);
-  res.json({ success: true, token, user: { id: client.id, username: client.username } });
+  res.json({ success: true, token, user: { id: client.id, username: client.username, class_name: client.class_name, major: client.major } });
 });
 
 router.get('/me', (req, res) => {
