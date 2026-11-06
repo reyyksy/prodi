@@ -11,16 +11,19 @@ router.get('/clients/search', (req, res) => {
     const major = String(req.query.major || '').trim();
     const className = String(req.query.class_name || '').trim();
     const query = String(req.query.q || '').trim();
-    if (query.length < 1) return res.json({ success: true, data: [] });
-    const filters = ['(LOWER(username) LIKE LOWER(?) OR LOWER(id) LIKE LOWER(?))'];
-    const params = [`%${query}%`, `%${query}%`];
+    const filters = [];
+    const params = [];
+    if (query) {
+      filters.push('(LOWER(username) LIKE LOWER(?) OR LOWER(id) LIKE LOWER(?))');
+      params.push(`%${query}%`, `%${query}%`);
+    }
     if (major) { filters.push('LOWER(major) = LOWER(?)'); params.push(major); }
     if (className) { filters.push('LOWER(class_name) = LOWER(?)'); params.push(className); }
     const clients = db.prepare(`
       SELECT id, username, class_name, major, has_voted
       FROM online_clients
-      WHERE ${filters.join(' AND ')}
-      ORDER BY username COLLATE NOCASE ASC LIMIT 20
+      ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''}
+      ORDER BY username COLLATE NOCASE ASC LIMIT 1000
     `).all(...params);
     res.json({ success: true, data: clients });
   } catch (err) {

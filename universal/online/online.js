@@ -3,8 +3,6 @@
   const searchStep = document.getElementById('searchStep');
   const passwordStep = document.getElementById('passwordStep');
   const voteStep = document.getElementById('voteStep');
-  const majorSelect = document.getElementById('majorSelect');
-  const classSelect = document.getElementById('classSelect');
   const searchInput = document.getElementById('searchInput');
   const searchResults = document.getElementById('searchResults');
   const passwordInput = document.getElementById('passwordInput');
@@ -22,12 +20,11 @@
     return res.json();
   }
   async function searchClients() {
-    if (searchInput.value.trim().length < 1) { searchResults.innerHTML = ''; return; }
-    const query = new URLSearchParams({ major: majorSelect.value, class_name: classSelect.value, q: searchInput.value.trim() });
+    const query = new URLSearchParams({ q: searchInput.value.trim() });
     const result = await api(`/clients/search?${query}`);
     searchResults.innerHTML = result.data?.length ? result.data.map(c => c.has_voted
       ? `<div class="online-user" style="opacity:.7"><span><strong>${c.username}</strong><br><small>${c.major || '-'} · ${c.class_name || '-'}</small></span><strong style="color:var(--color-danger);font-size:.8rem">Sudah memilih</strong></div>`
-      : `<button class="online-user" type="button" data-id="${c.id}" data-username="${c.username}"><span><strong>${c.username}</strong><br><small>${c.major || '-'} · ${c.class_name || '-'}</small></span><span>Masukkan password ›</span></button>`).join('') : '<small style="color:#64748b">Nama tidak ditemukan. Coba kata kunci lain atau gunakan filter jurusan/kelas.</small>';
+      : `<button class="online-user" type="button" data-id="${c.id}" data-username="${c.username}"><span><strong>${c.username}</strong><br><small>${c.major || '-'} · ${c.class_name || '-'}</small></span><span>Masukkan password ›</span></button>`).join('') : '<small style="color:#64748b">Nama tidak ditemukan. Coba kata kunci lain.</small>';
     searchResults.querySelectorAll('[data-id]').forEach(button => button.onclick = () => { selectedClient = { id: button.dataset.id, username: button.dataset.username }; selectedUser.textContent = `Pemilih: ${selectedClient.username}`; passwordInput.value = ''; loginMessage.textContent = ''; show(passwordStep); passwordInput.focus(); });
   }
   async function showCandidates() {
@@ -38,8 +35,8 @@
     list.querySelectorAll('[data-id]').forEach(button => button.onclick = async () => { if (!confirm('Pastikan pilihan Anda benar. Lanjutkan?')) return; button.disabled = true; const result = await api('/vote', { method:'POST', body:JSON.stringify({ candidate_id:Number(button.dataset.id) }) }); voteMessage.textContent = result.message; if (result.success) { token = null; sessionStorage.removeItem(tokenKey); list.innerHTML = ''; } button.disabled = false; });
   }
   let searchTimer;
-  [majorSelect, classSelect].forEach(select => select.addEventListener('change', searchClients));
   searchInput.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(searchClients, 250); });
+  searchClients();
   document.getElementById('backToSearch').onclick = () => show(searchStep);
   document.getElementById('loginButton').onclick = async () => { if (!selectedClient || !passwordInput.value) { loginMessage.textContent = 'Pilih pemilih dan masukkan password.'; return; } const button = document.getElementById('loginButton'); button.disabled = true; loginMessage.textContent = ''; try { const result = await api('/login', { method:'POST', body:JSON.stringify({ identifier:selectedClient.id, password:passwordInput.value }) }); if (!result.success) loginMessage.textContent = result.message || 'Password salah.'; else { token = result.token; sessionStorage.setItem(tokenKey, token); show(voteStep); await showCandidates(); } } catch (error) { loginMessage.textContent = 'Backend online tidak terhubung.'; } button.disabled = false; };
 })();
