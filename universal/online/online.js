@@ -22,10 +22,12 @@
     return res.json();
   }
   async function searchClients() {
-    if (!majorSelect.value || !classSelect.value || searchInput.value.trim().length < 1) { searchResults.innerHTML = ''; return; }
+    if (searchInput.value.trim().length < 1) { searchResults.innerHTML = ''; return; }
     const query = new URLSearchParams({ major: majorSelect.value, class_name: classSelect.value, q: searchInput.value.trim() });
     const result = await api(`/clients/search?${query}`);
-    searchResults.innerHTML = result.data?.length ? result.data.map(c => `<button class="online-user" type="button" data-id="${c.id}" data-username="${c.username}"><span><strong>${c.username}</strong><br><small>${c.major} · ${c.class_name}</small></span><span>›</span></button>`).join('') : '<small style="color:#64748b">Pemilih tidak ditemukan atau sudah memilih.</small>';
+    searchResults.innerHTML = result.data?.length ? result.data.map(c => c.has_voted
+      ? `<div class="online-user" style="opacity:.7"><span><strong>${c.username}</strong><br><small>${c.major || '-'} · ${c.class_name || '-'}</small></span><strong style="color:var(--color-danger);font-size:.8rem">Sudah memilih</strong></div>`
+      : `<button class="online-user" type="button" data-id="${c.id}" data-username="${c.username}"><span><strong>${c.username}</strong><br><small>${c.major || '-'} · ${c.class_name || '-'}</small></span><span>Masukkan password ›</span></button>`).join('') : '<small style="color:#64748b">Nama tidak ditemukan. Coba kata kunci lain atau gunakan filter jurusan/kelas.</small>';
     searchResults.querySelectorAll('[data-id]').forEach(button => button.onclick = () => { selectedClient = { id: button.dataset.id, username: button.dataset.username }; selectedUser.textContent = `Pemilih: ${selectedClient.username}`; passwordInput.value = ''; loginMessage.textContent = ''; show(passwordStep); passwordInput.focus(); });
   }
   async function showCandidates() {

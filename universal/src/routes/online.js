@@ -11,15 +11,17 @@ router.get('/clients/search', (req, res) => {
     const major = String(req.query.major || '').trim();
     const className = String(req.query.class_name || '').trim();
     const query = String(req.query.q || '').trim();
-    if (!major || !className || query.length < 1) return res.json({ success: true, data: [] });
+    if (query.length < 1) return res.json({ success: true, data: [] });
+    const filters = ['(LOWER(username) LIKE LOWER(?) OR LOWER(id) LIKE LOWER(?))'];
+    const params = [`%${query}%`, `%${query}%`];
+    if (major) { filters.push('LOWER(major) = LOWER(?)'); params.push(major); }
+    if (className) { filters.push('LOWER(class_name) = LOWER(?)'); params.push(className); }
     const clients = db.prepare(`
-      SELECT id, username, class_name, major
+      SELECT id, username, class_name, major, has_voted
       FROM online_clients
-      WHERE LOWER(major) = LOWER(?) AND LOWER(class_name) = LOWER(?)
-        AND (LOWER(username) LIKE LOWER(?) OR LOWER(id) LIKE LOWER(?))
-        AND has_voted = 0
+      WHERE ${filters.join(' AND ')}
       ORDER BY username COLLATE NOCASE ASC LIMIT 20
-    `).all(major, className, `%${query}%`, `%${query}%`);
+    `).all(...params);
     res.json({ success: true, data: clients });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Gagal mencari akun pemilih.' });

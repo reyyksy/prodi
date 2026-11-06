@@ -19,6 +19,13 @@ function serveOnlineVoter(res) {
   return serveFile(res, path.join(onlineDir, 'index.html'));
 }
 
+function serveMobilePublic(res, fileName) {
+  const html = fs.readFileSync(path.join(publicDir, fileName), 'utf8')
+    .replace('</head>', '<link rel="stylesheet" href="/online/mobile.css"></head>');
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(html);
+}
+
 function proxyApi(req, res) {
   const proxy = http.request({ hostname: '127.0.0.1', port: BACKEND_PORT, path: req.url, method: req.method, headers: { ...req.headers, host: `127.0.0.1:${BACKEND_PORT}` } }, backendRes => {
     res.writeHead(backendRes.statusCode, backendRes.headers);
@@ -31,8 +38,9 @@ function proxyApi(req, res) {
 const server = http.createServer((req, res) => {
   if (req.url.startsWith('/api/')) return proxyApi(req, res);
   if (req.url === '/' || req.url === '/index.html') return serveOnlineVoter(res);
-  if (req.url === '/admin.html') return serveFile(res, path.join(publicDir, 'admin.html'));
-  if (req.url === '/statistik.html') return serveFile(res, path.join(publicDir, 'statistik.html'));
+  if (req.url === '/admin.html') return serveMobilePublic(res, 'admin.html');
+  if (req.url === '/statistik.html') return serveMobilePublic(res, 'statistik.html');
+  if (req.url === '/online/mobile.css') return serveFile(res, path.join(onlineDir, 'mobile.css'));
   if (req.url === '/online/online.js') return serveFile(res, path.join(onlineDir, 'online.js'));
   if (req.url.startsWith('/tutorial/')) return serveFile(res, path.join(rootDir, req.url));
   if (req.url.startsWith('/css/') || req.url.startsWith('/js/') || req.url.startsWith('/images/')) return serveFile(res, path.join(publicDir, req.url));

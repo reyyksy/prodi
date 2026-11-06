@@ -1,0 +1,33 @@
+/* Mobile-only presentation for every page served through port 4000. */
+html, body { max-width: 100%; overflow-x: hidden; }
+body { font-size: 15px; }
+.app-header { position: sticky; top: 0; z-index: 1000; }
+.header-inner { padding: .7rem .85rem; gap: .6rem; }
+.brand-section { min-width: 0; gap: .55rem; }
+.logos-group { gap: .3rem; }
+.brand-logo { width: 30px; height: 30px; }
+.brand-text h1 { font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-text p { font-size: .62rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-status-badge, .header-inner > .btn-secondary { font-size: .7rem !important; white-space: nowrap; }
+.main-content { padding: 1rem .75rem 5rem; }
+.stats-container, .admin-body { width: calc(100% - 1rem); padding: .85rem; margin: .7rem auto 2rem; }
+.stats-header-banner, .stats-results-layout { display: block; }
+.total-counter-box { margin-top: 1rem; text-align: center; }
+.system-status-banner { align-items: flex-start; flex-direction: column; gap: .3rem; }
+.candidate-stat-row { gap: .75rem; padding: .85rem; }
+.stats-candidates .candidate-stat-row { flex: none; }
+.stat-info { min-width: 0; }
+.stat-names { font-size: .95rem; }
+.stat-numbers { min-width: 80px; }
+.admin-layout { display: block; }
+.admin-sidebar { width: 100%; position: static; }
+.sidebar-nav { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .5rem; }
+.nav-item { padding: .65rem .5rem; font-size: .75rem; }
+.admin-main { overflow: visible; }
+.admin-topbar { padding: .75rem .85rem; }
+.admin-body { max-width: none; }
+.pc-monitoring-grid { grid-template-columns: 1fr !important; }
+.data-table-container { overflow-x: auto; }
+.data-table { min-width: 620px; }
+.site-copyright { position: static; margin-top: auto; }
+@media (min-width: 700px) { .online-shell { max-width: 620px; } }
