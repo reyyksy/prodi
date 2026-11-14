@@ -197,7 +197,7 @@
         <div class="card-body">
           <div class="card-names">
             <div class="card-role-item">
-              <span class="card-role-label">Calon Ketua Prodi</span>
+              <span class="card-role-label">Calon Ketua OSIS</span>
               <div class="card-role-name">${c.chair_name}</div>
             </div>
             <div class="card-role-item">

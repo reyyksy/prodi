@@ -16,7 +16,7 @@ const candidates = [
   {
     ballot_number: 2,
     chair_name: "Yudis",
-    vice_name: "Tenyaho",
+    vice_name: "Rizky Sundava",
     vision: "Mewujudkan siswa/i SMK Yasbam yang dapat mengedepankan keimanan dan ketakwaan, serta menampung aspirasi dan kreativitas siswa/i SMK Yasbam dalam mengedepankan prestasi akademik maupun non-akademik.",
     mission: "1. Mewujudkan siswa/i SMK Yasbam yang bertakwa kepada Tuhan Yang Maha Esa.\n2. Meningkatkan kedisiplinan dan kesadaran siswa/i SMK Yasbam dalam menaati peraturan-peraturan yang berlaku.\n3. Mewujudkan siswa/i SMK Yasbam yang pandai bersosialisasi dengan baik di mana pun.\n4. Mewujudkan siswa/i SMK Yasbam yang berbudaya cinta lingkungan.\n5. Mengasah keterampilan siswa/i SMK Yasbam dalam bidang kesenian dan keolahragaan.\n6. Meningkatkan mutu prestasi akademik maupun non-akademik para siswa/i SMK Yasbam.",
     photo_path: "/images/paslon-2.jpg"
